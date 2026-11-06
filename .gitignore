@@ -1,0 +1,29 @@
+# Gradle / Kotlin / Loom
+.gradle/
+.kotlin/
+build/
+**/build/
+**/run/
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+
+# Logs / Crashes
+*.log
+hs_err_pid*
+crash-reports/
+
+# Fertige Jars liegen lokal in dist/ (Build-Artefakte, nicht ins Repo)
+dist/*.jar
+
+# Void-Addon: lokal vorhanden, aber nicht Teil dieses Repos
+void/
+docs/SPEC_VOID.md
+docs/VOID_OLD_BEHAVIOUR.md
+reference/old-jars/HHA_void-0.0.1.jar
+
+# OS
+Thumbs.db
+desktop.ini

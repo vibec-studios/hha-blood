@@ -1,0 +1,20 @@
+{
+  "layers": {
+    "humanoid": [
+      {
+        "texture": "hha_blood:blood"
+      },
+      {
+        "texture": "hha_blood:blood_glow"
+      }
+    ],
+    "humanoid_leggings": [
+      {
+        "texture": "hha_blood:blood"
+      },
+      {
+        "texture": "hha_blood:blood_glow"
+      }
+    ]
+  }
+}

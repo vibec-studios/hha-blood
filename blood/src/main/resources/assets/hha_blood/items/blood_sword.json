@@ -1,0 +1,19 @@
+{
+  "model": {
+    "type": "minecraft:select",
+    "property": "minecraft:display_context",
+    "cases": [
+      {
+        "when": ["gui", "fixed", "on_shelf"],
+        "model": {
+          "type": "minecraft:model",
+          "model": "hha_blood:item/blood_sword"
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "hha_blood:item/blood_sword_3d"
+    }
+  }
+}

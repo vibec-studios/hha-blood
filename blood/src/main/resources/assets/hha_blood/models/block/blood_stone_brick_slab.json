@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/slab",
+  "textures": {
+    "bottom": "hha_blood:block/blood_stone_bricks",
+    "side": "hha_blood:block/blood_stone_bricks",
+    "top": "hha_blood:block/blood_stone_bricks"
+  }
+}

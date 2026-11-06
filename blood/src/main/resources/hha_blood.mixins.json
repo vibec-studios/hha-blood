@@ -1,0 +1,25 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.henny.hha_blood.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "EntityMixin",
+    "LivingEntityMixin",
+    "MannequinEntityAccessor",
+    "MultiNoiseBiomeSourceMixin",
+    "NoiseChunkGeneratorMixin",
+    "PlayerLikeEntityAccessor"
+  ],
+  "client": [
+    "client.BipedEntityRendererMixin",
+    "client.EquipmentRendererMixin",
+    "client.GameRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}

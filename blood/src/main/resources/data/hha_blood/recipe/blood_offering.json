@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["WSW", "SGS", "WSW"],
+  "key": {
+    "W": "minecraft:nether_wart",
+    "S": "hha_blood:blood_crystal_shard",
+    "G": "minecraft:ghast_tear"
+  },
+  "result": { "id": "hha_blood:blood_offering", "count": 1 }
+}

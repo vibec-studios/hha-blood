@@ -1,0 +1,9 @@
+{
+  "type": "hha_blood:heart_vault",
+  "biomes": "#hha_blood:has_structure/heart_vault",
+  "spawn_overrides": {
+    "monster": { "bounding_box": "full", "spawns": [] }
+  },
+  "step": "top_layer_modification",
+  "terrain_adaptation": "none"
+}

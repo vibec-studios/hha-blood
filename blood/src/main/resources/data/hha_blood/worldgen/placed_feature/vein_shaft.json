@@ -1,0 +1,6 @@
+{
+  "feature": "hha_blood:vein_shaft",
+  "placement": [
+    { "type": "minecraft:rarity_filter", "chance": 30 }
+  ]
+}

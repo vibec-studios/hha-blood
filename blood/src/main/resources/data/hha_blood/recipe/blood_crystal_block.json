@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "pattern": ["##", "##"],
+  "key": { "#": "hha_blood:blood_crystal_shard" },
+  "result": { "id": "hha_blood:blood_crystal_block", "count": 1 }
+}

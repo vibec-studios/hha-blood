@@ -1,0 +1,10 @@
+{
+  "ambientocclusion": false,
+  "textures": {"particle": "hha_blood:item/blood_pool", "tex": "hha_blood:item/blood_pool"},
+  "elements": [
+    {"from": [0, 7.98, 0], "to": [16, 8.02, 16], "faces": {
+      "up": {"uv": [0, 0, 16, 16], "texture": "#tex"},
+      "down": {"uv": [0, 0, 16, 16], "texture": "#tex"}
+    }}
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "variants": {
+    "facing=down": {
+      "model": "hha_blood:block/small_blood_crystal",
+      "x": 180
+    },
+    "facing=east": {
+      "model": "hha_blood:block/small_blood_crystal",
+      "x": 90,
+      "y": 90
+    },
+    "facing=north": {
+      "model": "hha_blood:block/small_blood_crystal",
+      "x": 90
+    },
+    "facing=south": {
+      "model": "hha_blood:block/small_blood_crystal",
+      "x": 90,
+      "y": 180
+    },
+    "facing=up": {
+      "model": "hha_blood:block/small_blood_crystal"
+    },
+    "facing=west": {
+      "model": "hha_blood:block/small_blood_crystal",
+      "x": 90,
+      "y": 270
+    }
+  }
+}

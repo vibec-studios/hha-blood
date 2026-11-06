@@ -1,0 +1,4 @@
+{
+  "parent": "minecraft:block/cross",
+  "textures": { "cross": "hha_blood:block/blood_crystal_cluster" }
+}

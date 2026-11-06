@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "pattern": ["#", "#"],
+  "key": { "#": "hha_blood:blood_stone_brick_slab" },
+  "result": { "id": "hha_blood:chiseled_blood_stone", "count": 1 }
+}

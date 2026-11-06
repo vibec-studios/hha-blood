@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "hha_blood",
+  "version": "${version}",
+  "name": "HHA Blood",
+  "description": "Blood's Armor addon for H&H Armors - crimson endgame set with bleeding, Nihil, Bloodsaws and the Blood Cyclone.",
+  "authors": ["Henny"],
+  "contact": {
+    "homepage": "https://modrinth.com/mod/hha",
+    "sources": "https://github.com/Henny263462/HHA"
+  },
+  "license": "MIT",
+  "icon": "assets/hha_blood/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["dev.henny.hha_blood.HhaBlood"],
+    "client": ["dev.henny.hha_blood.client.HhaBloodClient"],
+    "hha": ["dev.henny.hha_blood.BloodAddon"],
+    "hha_client": ["dev.henny.hha_blood.client.BloodAddonClient"]
+  },
+  "mixins": ["hha_blood.mixins.json"],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-language-kotlin": ">=${kotlin_loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}",
+    "hha": ">=0.6.0"
+  }
+}

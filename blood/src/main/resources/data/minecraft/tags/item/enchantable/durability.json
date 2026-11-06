@@ -1,0 +1,7 @@
+{
+  "replace": false,
+  "values": [
+    "hha_blood:blood_helmet", "hha_blood:blood_chestplate", "hha_blood:blood_leggings", "hha_blood:blood_boots",
+    "hha_blood:blood_sword", "hha_blood:blood_mace"
+  ]
+}

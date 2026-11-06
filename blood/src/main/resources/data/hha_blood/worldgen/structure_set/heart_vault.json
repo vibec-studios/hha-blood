@@ -1,0 +1,8 @@
+{
+  "placement": {
+    "type": "hha_blood:single_arena"
+  },
+  "structures": [
+    { "structure": "hha_blood:heart_vault", "weight": 1 }
+  ]
+}
