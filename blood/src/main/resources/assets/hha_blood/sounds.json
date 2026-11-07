@@ -38,5 +38,153 @@
   "nihil_spike_impale": {
     "subtitle": "subtitles.hha_blood.nihil_spike_impale",
     "sounds": [{"name": "hha_blood:nihil/spike_impale", "attenuation_distance": 40}]
+  },
+  "boss.minotaur.roar": {
+    "subtitle": "subtitles.hha_blood.minotaur_roar",
+    "sounds": [{"name": "hha_blood:boss/minotaur_roar1", "attenuation_distance": 64}, {"name": "hha_blood:boss/minotaur_roar2", "attenuation_distance": 64}]
+  },
+  "boss.minotaur.snort": {
+    "subtitle": "subtitles.hha_blood.minotaur_snort",
+    "sounds": [{"name": "hha_blood:boss/minotaur_snort1", "attenuation_distance": 32}, {"name": "hha_blood:boss/minotaur_snort2", "attenuation_distance": 32}]
+  },
+  "boss.minotaur.grunt": {
+    "subtitle": "subtitles.hha_blood.minotaur_grunt",
+    "sounds": [{"name": "hha_blood:boss/minotaur_grunt1", "attenuation_distance": 32}, {"name": "hha_blood:boss/minotaur_grunt2", "attenuation_distance": 32}, {"name": "hha_blood:boss/minotaur_grunt3", "attenuation_distance": 32}]
+  },
+  "boss.minotaur.hurt": {
+    "subtitle": "subtitles.hha_blood.minotaur_hurt",
+    "sounds": [{"name": "hha_blood:boss/minotaur_hurt1", "attenuation_distance": 40}, {"name": "hha_blood:boss/minotaur_hurt2", "attenuation_distance": 40}]
+  },
+  "boss.minotaur.death": {
+    "subtitle": "subtitles.hha_blood.minotaur_death",
+    "sounds": [{"name": "hha_blood:boss/minotaur_death", "attenuation_distance": 64}]
+  },
+  "boss.minotaur.step": {
+    "subtitle": "subtitles.hha_blood.minotaur_step",
+    "sounds": [{"name": "hha_blood:boss/minotaur_step1", "attenuation_distance": 32}, {"name": "hha_blood:boss/minotaur_step2", "attenuation_distance": 32}, {"name": "hha_blood:boss/minotaur_step3", "attenuation_distance": 32}]
+  },
+  "boss.minotaur.voice": {
+    "subtitle": "subtitles.hha_blood.minotaur_voice",
+    "sounds": [{"name": "hha_blood:boss/voice_minotaur1", "attenuation_distance": 16}, {"name": "hha_blood:boss/voice_minotaur2", "attenuation_distance": 16}, {"name": "hha_blood:boss/voice_minotaur3", "attenuation_distance": 16}, {"name": "hha_blood:boss/voice_minotaur4", "attenuation_distance": 16}, {"name": "hha_blood:boss/voice_minotaur5", "attenuation_distance": 16}, {"name": "hha_blood:boss/voice_minotaur6", "attenuation_distance": 16}]
+  },
+  "boss.minotaur.charge": {
+    "subtitle": "subtitles.hha_blood.minotaur_charge",
+    "sounds": [{"name": "hha_blood:boss/charge", "attenuation_distance": 48}]
+  },
+  "boss.axe.swing": {
+    "subtitle": "subtitles.hha_blood.axe_swing",
+    "sounds": [{"name": "hha_blood:boss/axe_swing1", "attenuation_distance": 32}, {"name": "hha_blood:boss/axe_swing2", "attenuation_distance": 32}, {"name": "hha_blood:boss/axe_swing3", "attenuation_distance": 32}]
+  },
+  "boss.axe.impact": {
+    "subtitle": "subtitles.hha_blood.axe_impact",
+    "sounds": [{"name": "hha_blood:boss/axe_impact1", "attenuation_distance": 48}, {"name": "hha_blood:boss/axe_impact2", "attenuation_distance": 48}]
+  },
+  "boss.axe.spin": {
+    "subtitle": "subtitles.hha_blood.axe_spin",
+    "sounds": [{"name": "hha_blood:boss/axe_spin", "attenuation_distance": 32}]
+  },
+  "boss.wall_rise": {
+    "subtitle": "subtitles.hha_blood.wall_rise",
+    "sounds": [{"name": "hha_blood:boss/wall_rise", "attenuation_distance": 64}]
+  },
+  "boss.cerberus.growl": {
+    "subtitle": "subtitles.hha_blood.cerberus_growl",
+    "sounds": [{"name": "hha_blood:boss/cerberus_growl1", "attenuation_distance": 40}, {"name": "hha_blood:boss/cerberus_growl2", "attenuation_distance": 40}]
+  },
+  "boss.cerberus.bark": {
+    "subtitle": "subtitles.hha_blood.cerberus_bark",
+    "sounds": [{"name": "hha_blood:boss/cerberus_bark1", "attenuation_distance": 48}, {"name": "hha_blood:boss/cerberus_bark2", "attenuation_distance": 48}, {"name": "hha_blood:boss/cerberus_bark3", "attenuation_distance": 48}]
+  },
+  "boss.cerberus.bite": {
+    "subtitle": "subtitles.hha_blood.cerberus_bite",
+    "sounds": [{"name": "hha_blood:boss/cerberus_bite1", "attenuation_distance": 32}, {"name": "hha_blood:boss/cerberus_bite2", "attenuation_distance": 32}]
+  },
+  "boss.cerberus.howl": {
+    "subtitle": "subtitles.hha_blood.cerberus_howl",
+    "sounds": [{"name": "hha_blood:boss/cerberus_howl", "attenuation_distance": 64}]
+  },
+  "boss.cerberus.flame": {
+    "subtitle": "subtitles.hha_blood.cerberus_flame",
+    "sounds": [{"name": "hha_blood:boss/cerberus_flame", "attenuation_distance": 48}]
+  },
+  "boss.cerberus.hurt": {
+    "subtitle": "subtitles.hha_blood.cerberus_hurt",
+    "sounds": [{"name": "hha_blood:boss/cerberus_hurt1", "attenuation_distance": 40}, {"name": "hha_blood:boss/cerberus_hurt2", "attenuation_distance": 40}]
+  },
+  "boss.cerberus.whimper": {
+    "subtitle": "subtitles.hha_blood.cerberus_whimper",
+    "sounds": [{"name": "hha_blood:boss/cerberus_whimper", "attenuation_distance": 40}]
+  },
+  "boss.cerberus.death": {
+    "subtitle": "subtitles.hha_blood.cerberus_death",
+    "sounds": [{"name": "hha_blood:boss/cerberus_death", "attenuation_distance": 64}]
+  },
+  "boss.cerberus.step": {
+    "subtitle": "subtitles.hha_blood.cerberus_step",
+    "sounds": [{"name": "hha_blood:boss/cerberus_step1", "attenuation_distance": 32}, {"name": "hha_blood:boss/cerberus_step2", "attenuation_distance": 32}, {"name": "hha_blood:boss/cerberus_step3", "attenuation_distance": 32}]
+  },
+  "boss.gate_open": {
+    "subtitle": "subtitles.hha_blood.gate_open",
+    "sounds": [{"name": "hha_blood:boss/gate_open", "attenuation_distance": 64}]
+  },
+  "boss.chains": {
+    "subtitle": "subtitles.hha_blood.chains",
+    "sounds": [{"name": "hha_blood:boss/chains1", "attenuation_distance": 40}, {"name": "hha_blood:boss/chains2", "attenuation_distance": 40}]
+  },
+  "boss.fire_burst": {
+    "subtitle": "subtitles.hha_blood.fire_burst",
+    "sounds": [{"name": "hha_blood:boss/fire_burst", "attenuation_distance": 48}]
+  },
+  "boss.geyser": {
+    "subtitle": "subtitles.hha_blood.geyser",
+    "sounds": [{"name": "hha_blood:boss/geyser", "attenuation_distance": 32}]
+  },
+  "boss.impact_heavy": {
+    "subtitle": "subtitles.hha_blood.impact_heavy",
+    "sounds": [{"name": "hha_blood:boss/impact_heavy", "attenuation_distance": 64}]
+  },
+  "boss.stinger": {
+    "subtitle": "subtitles.hha_blood.stinger",
+    "sounds": [{"name": "hha_blood:boss/stinger", "attenuation_distance": 96}]
+  },
+  "boss.heartbeat": {
+    "subtitle": "subtitles.hha_blood.heartbeat",
+    "sounds": [{"name": "hha_blood:boss/heartbeat", "attenuation_distance": 40}]
+  },
+  "boss.paralyze": {
+    "subtitle": "subtitles.hha_blood.paralyze",
+    "sounds": [{"name": "hha_blood:boss/paralyze", "attenuation_distance": 16}]
+  },
+  "music.pit_ambient": {
+    "sounds": [{"name": "hha_blood:music/pit_ambient", "stream": true}]
+  },
+  "music.tension": {
+    "sounds": [{"name": "hha_blood:music/tension", "stream": true}]
+  },
+  "music.cerberus": {
+    "sounds": [{"name": "hha_blood:music/cerberus", "stream": true}]
+  },
+  "music.cerberus_unleashed": {
+    "sounds": [{"name": "hha_blood:music/cerberus_unleashed", "stream": true}]
+  },
+  "music.minotaur": {
+    "sounds": [{"name": "hha_blood:music/minotaur", "stream": true}]
+  },
+  "music.minotaur_final": {
+    "sounds": [{"name": "hha_blood:music/minotaur_final", "stream": true}]
+  },
+  "music.victory": {
+    "sounds": [{"name": "hha_blood:music/victory", "stream": true}]
+  },
+  "ambient.pit_heart.beat": {
+    "subtitle": "subtitles.hha_blood.pit_heart_beat",
+    "sounds": [{"name": "hha_blood:ambient/pit_heart_beat", "attenuation_distance": 16}]
+  },
+  "ambient.vein_hollows.heartbeat": {
+    "subtitle": "subtitles.hha_blood.hollows_heartbeat",
+    "sounds": [{"name": "hha_blood:ambient/hollows_heartbeat"}]
+  },
+  "ambient.vein_hollows.loop": {
+    "sounds": [{"name": "hha_blood:ambient/hollows_loop", "stream": true}]
   }
 }

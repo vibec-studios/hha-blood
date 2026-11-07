@@ -379,7 +379,7 @@ object NihilFx {
         for (e in world.getEntitiesByClass(LivingEntity::class.java, box) { it.isAlive && it !== owner && (if (ownerPlayer != null) Targeting.shouldHarm(ownerPlayer, it) else it is net.minecraft.entity.player.PlayerEntity) }) {
             if (!s.hit.add(e.uuid)) continue
             e.timeUntilRegen = 0
-            e.damage(world, if (ownerPlayer != null) world.damageSources.playerAttack(ownerPlayer) else world.damageSources.mobAttack(owner), s.damage)
+            e.damage(world, BloodDamage.source(world, BloodDamage.NIHIL_SPIKE, owner), s.damage)
             Bleed.apply(e, source = owner)
             val body = e.entityPos.add(0.0, e.height * 0.5, 0.0)
             BloodFx.wound(world, body, 4)

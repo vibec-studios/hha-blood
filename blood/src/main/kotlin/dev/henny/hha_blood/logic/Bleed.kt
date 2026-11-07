@@ -72,6 +72,10 @@ object Bleed {
     @JvmStatic
     fun damageMultiplier(entity: LivingEntity): Float {
         if (!isBleeding(entity) || !HhaConfig.enabled("hha_blood.hemorrhage")) return 1.0f
+        // only bleeding caused by players counts - a boss' bleed must not double the boss' own damage
+        val src = bleeding[entity.uuid]?.source
+        val world = entity.entityWorld as? net.minecraft.server.world.ServerWorld
+        if (src != null && world != null && world.getEntity(src) is dev.henny.hha_blood.boss.PitBoss) return 1.0f
         return HhaConfig.num("hha_blood.hemorrhage_multiplier").toFloat().coerceAtLeast(1.0f)
     }
 
@@ -115,7 +119,9 @@ object Bleed {
                 val p = victim.entityPos.add(0.0, victim.height * 0.55, 0.0)
                 if (entry.dps > 0f) {
                     victim.timeUntilRegen = 0
-                    victim.damage(world, world.damageSources.magic(), entry.dps)
+                    // the one who made it bleed gets the kill (and the death message names him)
+                    val by = entry.source?.let { world.getEntity(it) }?.takeIf { it.isAlive }
+                    victim.damage(world, BloodDamage.source(world, if (by != null) BloodDamage.BLEED else BloodDamage.BLEED_OUT, by), entry.dps)
                 }
                 val a = world.random.nextDouble() * PI * 2
                 val side = p.add(cos(a) * w, 0.0, sin(a) * w)

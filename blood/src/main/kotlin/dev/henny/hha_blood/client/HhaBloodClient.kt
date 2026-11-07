@@ -20,21 +20,29 @@ class HhaBloodClient : ClientModInitializer {
 
     override fun onInitializeClient() {
         BloodParticleFactories.register()
-        // Blood Prince boss
+        // Vein Hollows / Slaughter Pit decoration: watching eyes, the beating heart, blood falls, rising motes
+        dev.henny.hha_blood.client.hollows.HollowsClient.register()
+        // Slaughter Pit bosses
         net.fabricmc.fabric.api.client.rendering.v1.EntityModelLayerRegistry.registerModelLayer(
-            dev.henny.hha_blood.client.boss.BloodPrinceModel.LAYER,
-        ) { dev.henny.hha_blood.client.boss.BloodPrinceModel.texturedModelData() }
-        net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(dev.henny.hha_blood.boss.BossContent.BLOOD_PRINCE) {
-            dev.henny.hha_blood.client.boss.BloodPrinceRenderer(it)
+            dev.henny.hha_blood.client.boss.MinotaurModel.LAYER,
+        ) { dev.henny.hha_blood.client.boss.MinotaurModelData.create() }
+        net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(dev.henny.hha_blood.boss.BossContent.MINOTAUR) {
+            dev.henny.hha_blood.client.boss.MinotaurRenderer(it)
         }
         net.fabricmc.fabric.api.client.rendering.v1.EntityModelLayerRegistry.registerModelLayer(
-            dev.henny.hha_blood.client.boss.CruoraxModel.LAYER,
-        ) { dev.henny.hha_blood.client.boss.CruoraxModel.texturedModelData() }
-        net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(dev.henny.hha_blood.boss.BossContent.CRUORAX) {
-            dev.henny.hha_blood.client.boss.CruoraxRenderer(it)
+            dev.henny.hha_blood.client.boss.CerberusModel.LAYER,
+        ) { dev.henny.hha_blood.client.boss.CerberusModelData.create() }
+        net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(dev.henny.hha_blood.boss.BossContent.CERBERUS) {
+            dev.henny.hha_blood.client.boss.CerberusRenderer(it)
         }
+        // cutscenes + boss music
+        ClientPlayNetworking.registerGlobalReceiver(dev.henny.hha_blood.boss.CinePayload.ID) { payload, _ -> dev.henny.hha_blood.client.cine.CinePlayer.handle(payload) }
+        net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register { dev.henny.hha_blood.client.cine.CinePlayer.tick() }
         net.fabricmc.fabric.api.client.rendering.v1.BlockRenderLayerMap.putBlocks(
             net.minecraft.client.render.BlockRenderLayer.CUTOUT,
+            dev.henny.hha_blood.boss.BossContent.HEAD_BLEED_BLOCK,
+            dev.henny.hha_blood.boss.BossContent.HEAD_FLAME_BLOCK,
+            dev.henny.hha_blood.boss.BossContent.HEAD_HOWL_BLOCK,
             dev.henny.hha_blood.hollows.HollowsBlocks.BLOOD_CRYSTAL_CLUSTER,
             dev.henny.hha_blood.hollows.HollowsBlocks.SMALL_BLOOD_CRYSTAL,
         )
@@ -74,6 +82,7 @@ class HhaBloodClient : ClientModInitializer {
             HudLineOverlay.clear()
             CameraShake.clear()
             ScreenFlash.clear()
+            dev.henny.hha_blood.client.cine.CinePlayer.reset()
         }
     }
 }

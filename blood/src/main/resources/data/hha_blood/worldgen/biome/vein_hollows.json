@@ -5,7 +5,7 @@
         "sound": "minecraft:ambient.crimson_forest.additions",
         "tick_chance": 0.0111
       },
-      "loop": "minecraft:ambient.basalt_deltas.loop",
+      "loop": "hha_blood:ambient.vein_hollows.loop",
       "mood": {
         "block_search_extent": 8,
         "offset": 2.0,
@@ -15,9 +15,9 @@
     },
     "minecraft:audio/background_music": {
       "default": {
-        "max_delay": 24000,
-        "min_delay": 12000,
-        "sound": "minecraft:music.nether.crimson_forest"
+        "max_delay": 12000,
+        "min_delay": 3600,
+        "sound": "hha_blood:music.pit_ambient"
       }
     },
     "minecraft:visual/ambient_particles": [
@@ -25,11 +25,18 @@
         "particle": {
           "type": "minecraft:crimson_spore"
         },
-        "probability": 0.03
+        "probability": 0.012
+      },
+      {
+        "particle": {
+          "type": "hha_blood:blood_mote"
+        },
+        "probability": 0.006
       }
     ],
     "minecraft:visual/fog_color": "#3d0306",
-    "minecraft:visual/fog_end_distance": 80.0,
+    "minecraft:visual/fog_end_distance": 124.0,
+    "minecraft:visual/fog_start_distance": 22.0,
     "minecraft:visual/water_fog_color": "#3a0004",
     "minecraft:visual/water_fog_end_distance": 12.0
   },
@@ -53,7 +60,11 @@
     ],
     [
       "hha_blood:blood_crystals",
-      "hha_blood:rib_bones"
+      "hha_blood:rib_bones",
+      "hha_blood:eye_cluster",
+      "hha_blood:ceiling_blood_fall",
+      "hha_blood:blood_vents",
+      "hha_blood:hanging_glow"
     ],
     [],
     [],

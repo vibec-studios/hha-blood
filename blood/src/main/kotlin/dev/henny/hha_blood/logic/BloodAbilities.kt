@@ -301,7 +301,7 @@ object BloodAbilities {
             if (elapsed % 5 == 0) {
                 val dmg = session.drainPerTick * 5
                 v.timeUntilRegen = 0
-                v.damage(world, world.damageSources.playerAttack(owner), dmg)
+                v.damage(world, BloodDamage.source(world, BloodDamage.NIHIL, owner), dmg)
                 drained += dmg
                 BloodFx.spawn(world, BloodFx.crumbs, body, 4, 0.2, 0.06)
             }
@@ -360,7 +360,7 @@ object BloodAbilities {
         val dps = HhaConfig.num("hha_blood.bleed_dps").toFloat() * 1.25f
         for (e in enemies(world, owner, center, session.range)) {
             e.timeUntilRegen = 0
-            e.damage(world, world.damageSources.playerAttack(owner), damage)
+            e.damage(world, BloodDamage.source(world, BloodDamage.NIHIL_NOVA, owner), damage)
             Bleed.apply(e, duration, dps, owner)
             BloodFx.column(world, e.entityPos, 3.2, 0.35, 16, BloodFx.dust(BloodFx.BRIGHT, 1.6f))
             BloodFx.wound(world, e.entityPos.add(0.0, e.height * 0.6, 0.0), 3)
@@ -427,7 +427,7 @@ object BloodAbilities {
         val center = player.entityPos
         for (e in enemies(world, player, center, range)) {
             e.timeUntilRegen = 0
-            e.damage(world, world.damageSources.playerAttack(player), damage)
+            e.damage(world, BloodDamage.source(world, BloodDamage.BLOOD_TRAIL, player), damage)
             e.addStatusEffect(StatusEffectInstance(StatusEffects.SLOWNESS, slowTicks, 5, false, true, true)) // Slowness VI
             Bleed.apply(e, source = player)
             BloodFx.wound(world, e.entityPos.add(0.0, 0.6, 0.0), 2)

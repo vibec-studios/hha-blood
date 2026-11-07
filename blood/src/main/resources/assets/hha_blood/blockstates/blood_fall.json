@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "rising=false": { "model": "hha_blood:block/blood_fall" },
+    "rising=true": { "model": "hha_blood:block/blood_rise" }
+  }
+}

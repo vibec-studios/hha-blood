@@ -154,9 +154,23 @@ class RibBonesFeature : Feature<DefaultFeatureConfig>(DefaultFeatureConfig.CODEC
 class VeinShaftFeature : Feature<DefaultFeatureConfig>(DefaultFeatureConfig.CODEC) {
     override fun generate(context: FeatureContext<DefaultFeatureConfig>): Boolean {
         val world = context.world
+        val sampler = world.toServerWorld().chunkManager.noiseConfig.multiNoiseSampler
+        // a station shaft on every old road (HollowsRoads): an entrance with a road that leads to the pit
+        val centre = HollowsRegion.center()
+        val station = centre?.let { c -> HollowsRoads.stations(c).firstOrNull { (sx, sz, _) -> sx shr 4 == context.origin.x shr 4 && sz shr 4 == context.origin.z shr 4 } }
+        if (station != null) {
+            val (sx, sz, floor) = station
+            val qx = sx shr 2; val qz = sz shr 2
+            for (i in -3..3) for (j in -3..3) if (!HollowsRegion.isCell(sampler, qx + i, qz + j)) return false
+            val top = HollowsGen.findOpening(world, sx, sz)
+            if (top < 0) return false
+            HollowsGen.buildShaft(world, sx, sz, floor, top, null)
+            return true
+        }
+        // otherwise a random shaft in one chunk out of 30
+        if (context.random.nextInt(30) != 0) return false
         val cx = ((context.origin.x shr 4) shl 4) + 8
         val cz = ((context.origin.z shr 4) shl 4) + 8
-        val sampler = world.toServerWorld().chunkManager.noiseConfig.multiNoiseSampler
         // well inside the region only (the tube must sit above carved caves)
         val qx = cx shr 2; val qz = cz shr 2
         for (i in -3..3) for (j in -3..3) if (!HollowsRegion.isCell(sampler, qx + i, qz + j)) return false

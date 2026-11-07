@@ -88,7 +88,9 @@ object BloodItems {
                     entries.add(BLOOD_MACE)
                     entries.add(dev.henny.hha_blood.hollows.HollowsBlocks.BLOOD_CRYSTAL_SHARD)
                     entries.add(dev.henny.hha_blood.boss.BossContent.BLOOD_OFFERING)
-                    entries.add(dev.henny.hha_blood.boss.BossContent.HEART_OF_CRUORAX)
+                    entries.add(dev.henny.hha_blood.boss.BossContent.HEAD_BLEED)
+                    entries.add(dev.henny.hha_blood.boss.BossContent.HEAD_FLAME)
+                    entries.add(dev.henny.hha_blood.boss.BossContent.HEAD_HOWL)
                     for (b in dev.henny.hha_blood.hollows.HollowsBlocks.ALL) entries.add(b)
                 }
                 .build(),

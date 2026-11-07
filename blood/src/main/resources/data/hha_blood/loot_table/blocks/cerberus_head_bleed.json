@@ -1,0 +1,5 @@
+{
+  "type": "minecraft:block",
+  "pools": [{"rolls": 1, "entries": [{"type": "minecraft:item", "name": "hha_blood:cerberus_head_bleed"}], "conditions": [{"condition": "minecraft:survives_explosion"}]}],
+  "random_sequence": "hha_blood:blocks/cerberus_head_bleed"
+}

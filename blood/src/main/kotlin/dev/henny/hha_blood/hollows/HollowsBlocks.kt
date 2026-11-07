@@ -78,9 +78,11 @@ object HollowsBlocks {
         BLOOD_STONE, POLISHED_BLOOD_STONE, BLOOD_STONE_BRICKS, CHISELED_BLOOD_STONE,
         BLOOD_STONE_BRICK_STAIRS, BLOOD_STONE_BRICK_SLAB, BLOOD_STONE_BRICK_WALL,
         VEIN_STONE, CLOTTED_BLOOD, BLOOD_CRYSTAL_BLOCK, BLOOD_CRYSTAL_CLUSTER, SMALL_BLOOD_CRYSTAL, SANGUINE_ALTAR,
-    )
+    ) + PitBlocks.WITH_ITEM
 
     fun init() {
+        HollowsParticles.init()
+        PitBlocks.init()
         for (b in ALL) {
             if (b === SANGUINE_ALTAR) Items.register(b) { it.rarity(Rarity.EPIC).fireproof() } else Items.register(b)
         }

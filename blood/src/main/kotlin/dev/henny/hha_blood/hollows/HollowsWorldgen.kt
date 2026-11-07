@@ -19,6 +19,10 @@ object HollowsWorldgen {
     lateinit var CRYSTALS: Feature<DefaultFeatureConfig> private set
     lateinit var RIBS: Feature<DefaultFeatureConfig> private set
     lateinit var SHAFT: Feature<DefaultFeatureConfig> private set
+    lateinit var EYES: Feature<DefaultFeatureConfig> private set
+    lateinit var FALLS: Feature<DefaultFeatureConfig> private set
+    lateinit var VENTS: Feature<DefaultFeatureConfig> private set
+    lateinit var GLOWS: Feature<DefaultFeatureConfig> private set
 
     lateinit var HEART_VAULT: StructureType<HeartVaultStructure> private set
     lateinit var HEART_VAULT_PIECE: StructurePieceType private set
@@ -28,6 +32,10 @@ object HollowsWorldgen {
         CRYSTALS = feature("blood_crystals", BloodCrystalFeature())
         RIBS = feature("rib_bones", RibBonesFeature())
         SHAFT = feature("vein_shaft", VeinShaftFeature())
+        EYES = feature("eye_cluster", EyeClusterFeature())
+        FALLS = feature("ceiling_blood_fall", CeilingBloodFallFeature())
+        VENTS = feature("blood_vents", BloodVentFeature())
+        GLOWS = feature("hanging_glow", HangingGlowFeature())
 
         HollowsRegion.init()
         SINGLE_ARENA = Registry.register(Registries.STRUCTURE_PLACEMENT, HhaBlood.id("single_arena"), net.minecraft.world.gen.chunk.placement.StructurePlacementType { SingleArenaPlacement.CODEC })

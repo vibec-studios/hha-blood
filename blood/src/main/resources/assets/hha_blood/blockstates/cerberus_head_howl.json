@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": {"model": "hha_blood:block/cerberus_head_howl"},
+    "facing=east": {"model": "hha_blood:block/cerberus_head_howl", "y": 90},
+    "facing=south": {"model": "hha_blood:block/cerberus_head_howl", "y": 180},
+    "facing=west": {"model": "hha_blood:block/cerberus_head_howl", "y": 270}
+  }
+}

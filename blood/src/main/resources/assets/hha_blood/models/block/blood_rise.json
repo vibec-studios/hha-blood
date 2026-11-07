@@ -1,0 +1,6 @@
+{
+  "textures": { "particle": "hha_blood:block/blood_rise", "fall": "hha_blood:block/blood_rise" },
+  "elements": [
+    { "from": [0, 0, 0], "to": [16, 16, 16], "faces": { "north": {"uv": [0, 0, 16, 16], "texture": "#fall", "cullface": "north"}, "east": {"uv": [0, 0, 16, 16], "texture": "#fall", "cullface": "east"}, "south": {"uv": [0, 0, 16, 16], "texture": "#fall", "cullface": "south"}, "west": {"uv": [0, 0, 16, 16], "texture": "#fall", "cullface": "west"}, "up": {"uv": [0, 0, 16, 16], "texture": "#fall", "cullface": "up"}, "down": {"uv": [0, 0, 16, 16], "texture": "#fall", "cullface": "down"} } }
+  ]
+}

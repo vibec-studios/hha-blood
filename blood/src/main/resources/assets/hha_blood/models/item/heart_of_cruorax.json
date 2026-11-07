@@ -1,4 +1,0 @@
-{
-  "parent": "minecraft:item/generated",
-  "textures": { "layer0": "hha_blood:item/heart_of_cruorax" }
-}

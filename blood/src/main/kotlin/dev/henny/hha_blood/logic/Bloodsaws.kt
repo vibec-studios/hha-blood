@@ -143,7 +143,7 @@ object Bloodsaws {
             for (e in victims) {
                 if (!saw.hit.add(e.uuid)) continue
                 e.timeUntilRegen = 0
-                e.damage(world, world.damageSources.playerAttack(owner), damage)
+                e.damage(world, BloodDamage.source(world, BloodDamage.BLOODSAW, owner), damage)
                 Bleed.apply(e, source = owner)
                 val body = e.entityPos.add(0.0, e.height * 0.5, 0.0)
                 BloodFx.wound(world, body, 2)
@@ -237,7 +237,7 @@ object Bloodsaws {
         }
         for (e in targets) {
             e.timeUntilRegen = 0
-            e.damage(world, world.damageSources.playerAttack(owner), damage)
+            e.damage(world, BloodDamage.source(world, BloodDamage.BLOOD_FOUNTAIN, owner), damage)
             Bleed.apply(e, bleedTicks, dps, owner)
             BloodFx.wound(world, e.entityPos.add(0.0, 1.0, 0.0), 2)
         }

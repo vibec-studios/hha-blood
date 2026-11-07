@@ -64,6 +64,12 @@ class BloodAddon : HhaAddon {
         c.registerNumber("enduring_weaving_ticks", 9600.0)   // 8 min
         c.registerNumber("enduring_turtle_ticks", 1200.0)    // 1 min (Turtle Master Resistance)
         c.registerNumber("enduring_turtle_slow_factor", 0.5) // Turtle Master Slowness duration x0.5 (1 = vanilla)
+        // Slaughter Pit boss fight (Minotaur + Cerberus)
+        c.registerToggle("boss_safe_knockout", false)      // true: lethal hits in the pit knock you out instead of killing you (a totem always pops first)
+        c.registerNumber("boss_damage", 1.0)               // multiplier for all boss damage
+        c.registerNumber("boss_max_hit", 30.0)             // most damage one hit can deal to a boss
+        c.registerNumber("boss_health_per_player", 0.5)    // +50 % effective health per extra player
+        c.registerNumber("boss_damage_per_player", 0.15)   // +15 % boss damage per extra player
         // leggings
         c.registerToggle("infection", true)
         c.registerNumber("infection_chance", 15.0)

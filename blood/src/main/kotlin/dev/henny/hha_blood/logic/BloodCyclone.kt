@@ -322,7 +322,7 @@ object BloodCyclone {
         }) {
             if (!b.hit.add(e.uuid)) continue
             e.timeUntilRegen = 0
-            e.damage(world, world.damageSources.playerAttack(owner), damage)
+            e.damage(world, BloodDamage.source(world, BloodDamage.BLOOD_CYCLONE, owner), damage)
             Bleed.apply(e, source = owner)          // triggers the Infection bleed
             val body = e.entityPos.add(0.0, e.height * 0.55, 0.0)
             BloodFx.spawn(world, BloodFx.crumbs, body, 3, 0.15, 0.12)

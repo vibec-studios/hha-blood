@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "hha_blood-gametest",
+  "version": "1.0.0",
+  "name": "HHA Blood Gametest",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-client-gametest": ["dev.henny.hha_blood.gametest.BloodClientGameTest"]
+  },
+  "depends": {"hha_blood": "*"}
+}

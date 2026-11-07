@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "top": "hha_blood:block/blood_vent_top",
+    "side": "hha_blood:block/blood_vent_side",
+    "bottom": "hha_blood:block/blood_stone"
+  }
+}

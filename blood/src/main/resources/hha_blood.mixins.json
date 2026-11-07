@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "EntityMixin",
+    "ExplosionImplMixin",
     "LivingEntityMixin",
     "MannequinEntityAccessor",
     "MultiNoiseBiomeSourceMixin",
@@ -13,8 +14,13 @@
   ],
   "client": [
     "client.BipedEntityRendererMixin",
+    "client.CameraMixin",
     "client.EquipmentRendererMixin",
-    "client.GameRendererMixin"
+    "client.GameRendererMixin",
+    "client.InGameHudMixin",
+    "client.KeyboardInputMixin",
+    "client.MinecraftClientMixin",
+    "client.MouseMixin"
   ],
   "injectors": {
     "defaultRequire": 1

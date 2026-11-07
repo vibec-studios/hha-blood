@@ -103,6 +103,7 @@ object HollowsGen {
      * to [top] (first open air above the lava sea), crowned with bone spikes and blood crystals.
      * The lowest 4 blocks are open between four legs, so the shaft opens into the cave/tunnel.
      * Centre column has a two-deep blood pool at the bottom to land in when jumping down.
+     * Above the pool a column of rising blood carries you up (sneak to sink slowly, no fall damage).
      */
     fun buildShaft(world: StructureWorldAccess, cx: Int, cz: Int, bottom: Int, top: Int, clip: BlockBox?) {
         val pos = BlockPos.Mutable()
@@ -141,6 +142,8 @@ object HollowsGen {
                     // crown spikes
                     spikeAt && r >= 4.0 && r < 5.2 && y > top + 3 && y <= top + 3 + spikeLen -> Blocks.BONE_BLOCK.defaultState
                     spikeAt && r >= 4.0 && r < 5.2 && y == top + 4 + spikeLen -> HollowsBlocks.BLOOD_CRYSTAL_CLUSTER.defaultState
+                    // the middle: a column of rising blood - an elevator up to the Nether (sneak to sink slowly)
+                    r < 1.6 && y > bottom && y <= top + 2 -> PitBlocks.BLOOD_FALL.defaultState.with(BloodFallBlock.RISING, true)
                     // inside: spiral steps, otherwise air
                     r < 3.0 && y > bottom && y <= top + 2 ->
                         if (r >= 1.6 && Math.floorMod(y - stepStart - sector, 16) == 0) HollowsBlocks.POLISHED_BLOOD_STONE.defaultState

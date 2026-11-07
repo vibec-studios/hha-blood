@@ -68,6 +68,27 @@ object FxDisplays {
         }
     }
 
+    /** Like [spawn], but shows [stack] with its own item model (e.g. an item of another mod). */
+    fun spawnStack(
+        world: ServerWorld, pos: Vec3d, stack: ItemStack, rotation: Quaternionf, scale: Float,
+        fullBright: Boolean = false, teleportTicks: Int = 1,
+    ): DisplayEntity.ItemDisplayEntity? {
+        val display = DisplayEntity.ItemDisplayEntity(EntityType.ITEM_DISPLAY, world)
+        display.setItemStack(stack.copy())
+        display.setBillboardMode(DisplayEntity.BillboardMode.FIXED)
+        display.setViewRange(3.0f)
+        display.setTeleportDuration(teleportTicks)
+        if (fullBright) display.setBrightness(Brightness(15, 15))
+        display.setPosition(pos.x, pos.y, pos.z)
+        display.setTransformation(transform(rotation, scale))
+        display.addCommandTag(TAG)
+        alive += display.uuid
+        return if (world.spawnEntity(display)) display else {
+            alive -= display.uuid
+            null
+        }
+    }
+
     /** Moves + rotates a display smoothly over [ticks]. */
     fun update(display: DisplayEntity.ItemDisplayEntity, pos: Vec3d, rotation: Quaternionf, scale: Float, ticks: Int = 1) =
         update(display, pos, rotation, Vector3f(scale, scale, scale), ticks)

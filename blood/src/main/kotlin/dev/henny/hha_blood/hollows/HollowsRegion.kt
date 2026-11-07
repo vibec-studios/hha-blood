@@ -54,8 +54,8 @@ object HollowsRegion {
     private val computing: ThreadLocal<Boolean> = ThreadLocal.withInitial { false }
 
     fun init() {
-        ServerLifecycleEvents.SERVER_STARTING.register { s -> server = s; center = null }
-        ServerLifecycleEvents.SERVER_STOPPED.register { server = null; center = null }
+        ServerLifecycleEvents.SERVER_STARTING.register { s -> server = s; center = null; plaza = null }
+        ServerLifecycleEvents.SERVER_STOPPED.register { server = null; center = null; plaza = null }
     }
 
     /**
@@ -76,6 +76,53 @@ object HollowsRegion {
             center = c
             HhaBlood.LOGGER.info("Vein Hollows / Heart Vault at {} {} (Nether)", c.x, c.z)
             return c
+        }
+    }
+
+    /** (plaza y, air above it) of the entrance landmark, see [plazaY]. */
+    @Volatile private var plaza: IntArray? = null
+    private val plazaLock = Any()
+
+    /**
+     * Walking level (world y) of the landmark plaza above the stair tower (PitApproach): the first open air of
+     * at least 3 blocks above the lava sea in the Nether noise column at the tower centre (same in every run and
+     * independent of chunks, like [center]). 32 = right on the lava sea. Clamped to 32..80.
+     */
+    @JvmStatic
+    fun plazaY(): Int = plazaInfo()[0]
+
+    /** Free air (blocks) above the plaza in the noise column, used to size the landmark. */
+    fun plazaAir(): Int = plazaInfo()[1]
+
+    private fun plazaInfo(): IntArray {
+        plaza?.let { return it }
+        val c = center() ?: return intArrayOf(32, 24)
+        synchronized(plazaLock) {
+            plaza?.let { return it }
+            val s = server ?: return intArrayOf(32, 24)
+            val nether = s.getWorld(World.NETHER) ?: return intArrayOf(32, 24)
+            var top = 32
+            var air = 24
+            try {
+                val gen = nether.chunkManager.chunkGenerator
+                val column = gen.getColumnSample(c.x, c.z + PitApproach.TOWER_DZ, nether, nether.chunkManager.noiseConfig)
+                var found = -1
+                for (y in 32..100) {
+                    if (column.getState(y).isAir && column.getState(y + 1).isAir && column.getState(y + 2).isAir) { found = y; break }
+                }
+                if (found > 0) {
+                    top = found.coerceIn(32, 80)
+                    var run = 0
+                    while (top + run < 120 && column.getState(top + run).isAir) run++
+                    air = run
+                }
+            } catch (t: Throwable) {
+                HhaBlood.LOGGER.warn("Vein Hollows: could not sample the plaza column", t)
+            }
+            val r = intArrayOf(top, air)
+            plaza = r
+            HhaBlood.LOGGER.info("Slaughter Pit entrance plaza at y {} ({} blocks of air above)", top, air)
+            return r
         }
     }
 
