@@ -26,7 +26,7 @@ object BloodHud {
                 GRAY -> Formatting.GRAY
                 else -> Formatting.RED
             }
-            player.sendMessage(Text.translatable(key, *strArgs.toTypedArray()).formatted(fmt), true)
+            player.sendMessage(Text.translatable(key, *strArgs.map { a -> if (a.startsWith("@key:")) Text.keybind(a.removePrefix("@key:")) else Text.literal(a) }.toTypedArray()).formatted(fmt), true)
         }
     }
 }

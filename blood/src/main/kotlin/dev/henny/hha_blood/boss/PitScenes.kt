@@ -59,6 +59,66 @@ class PitScenes(val world: ServerWorld, private val mino: MinotaurEntity, privat
         boss.setNoGravity(false)
     }
 
+    /** Turns a boss by at most [step] degrees towards [yaw] (body and head together). */
+    private fun turn(boss: PitBoss, yaw: Float, step: Float) {
+        val y = net.minecraft.util.math.MathHelper.stepUnwrappedAngleTowards(boss.yaw, yaw, step)
+        boss.yaw = y; boss.bodyYaw = y; boss.headYaw = y
+    }
+
+    /** Turns a boss on the spot towards [yaw] over [ticks] ticks (the client animates the steps). */
+    private suspend fun SequenceScope<Unit>.turnTo(boss: PitBoss, yaw: Float, ticks: Int, step: Float = 9f) {
+        repeat(ticks) { turn(boss, yaw, step); yield(Unit) }
+    }
+
+    private fun catmull(p0: Vec3d, p1: Vec3d, p2: Vec3d, p3: Vec3d, u: Double): Vec3d {
+        val u2 = u * u
+        val u3 = u2 * u
+        fun c(a: Double, b: Double, c: Double, d: Double) = 0.5 * (2 * b + (-a + c) * u + (2 * a - 5 * b + 4 * c - d) * u2 + (-a + 3 * b - 3 * c + d) * u3)
+        return Vec3d(c(p0.x, p1.x, p2.x, p3.x), c(p0.y, p1.y, p2.y, p3.y), c(p0.z, p1.z, p2.z, p3.z))
+    }
+
+    /** Distance profile 0..1 that speeds up over the first [r] of the time, keeps the pace and slows down over the last [r]. */
+    private fun trapezoid(x: Double, r: Double): Double {
+        val v = 1.0 / (1.0 - r)
+        return when {
+            x < r -> 0.5 * v * x * x / r
+            x > 1 - r -> 1.0 - 0.5 * v * (1 - x) * (1 - x) / r
+            else -> 0.5 * v * r + v * (x - r)
+        }
+    }
+
+    /**
+     * Walks a boss along a smooth curve through [points] in [ticks] ticks: it speeds up and slows down, and turns into
+     * the direction it walks (at most [turnStep] degrees a tick) instead of snapping round at the corners.
+     */
+    private suspend fun SequenceScope<Unit>.prowl(boss: PitBoss, points: List<Vec3d>, ticks: Int, turnStep: Float = 10f) {
+        val ctrl = listOf(boss.entityPos) + points
+        val samples = ArrayList<Vec3d>()
+        for (seg in 0 until ctrl.size - 1) {
+            val p0 = ctrl[maxOf(seg - 1, 0)]
+            val p3 = ctrl[minOf(seg + 2, ctrl.size - 1)]
+            for (k in 0 until 24) samples += catmull(p0, ctrl[seg], ctrl[seg + 1], p3, k / 24.0)
+        }
+        samples += ctrl.last()
+        val acc = DoubleArray(samples.size)
+        for (i in 1 until samples.size) acc[i] = acc[i - 1] + samples[i].distanceTo(samples[i - 1])
+        val total = acc.last()
+        boss.setNoGravity(true)
+        var j = 0
+        for (i in 1..ticks) {
+            val s = total * trapezoid(i.toDouble() / ticks, 0.2)
+            while (j < samples.size - 2 && acc[j + 1] < s) j++
+            val len = (acc[j + 1] - acc[j]).coerceAtLeast(1e-6)
+            val p = samples[j].lerp(samples[j + 1], ((s - acc[j]) / len).coerceIn(0.0, 1.0))
+            val ahead = samples[minOf(j + 4, samples.size - 1)]
+            if (ahead.squaredDistanceTo(p) > 0.04) turn(boss, yawTo(p, ahead), turnStep)
+            boss.setPosition(p)
+            boss.velocity = Vec3d.ZERO
+            yield(Unit)
+        }
+        boss.setNoGravity(false)
+    }
+
     private fun sound(event: SoundEvent, at: Vec3d, volume: Float = 3f, pitch: Float = 1f) =
         world.playSound(null, at.x, at.y, at.z, event, SoundCategory.HOSTILE, volume, pitch)
 
@@ -137,9 +197,15 @@ class PitScenes(val world: ServerWorld, private val mino: MinotaurEntity, privat
             wait(18)
             mino.act(MinotaurEntity.STAND)
             sound(BossSounds.MINOTAUR_SNORT, mino.entityPos, 3f, 0.8f)
-            wait(30)
-            glide(mino, balconyFront, 34)
+            wait(20)
+            // up on his hooves: the balcony creaks under him
+            sound(BossSounds.MINOTAUR_STEP, mino.entityPos, 2.5f, 0.7f)
+            BloodFx.shake(world, mino.entityPos, 40.0, 0.4f, 8)
+            wait(12)
+            // he walks (the steps come from the motion) to the parapet
             mino.act(MinotaurEntity.IDLE)
+            glide(mino, balconyFront, 34)
+            sound(BossSounds.MINOTAUR_STEP, mino.entityPos, 2.2f, 0.8f)
             mino.yaw = 0f; mino.headYaw = 0f; mino.bodyYaw = 0f
             if (again) {
                 say(Cine.SPEAKER_MINOTAUR, "intro.again")
@@ -167,6 +233,8 @@ class PitScenes(val world: ServerWorld, private val mino: MinotaurEntity, privat
             sound(BossSounds.CHAINS, gateFront.add(0.0, 2.0, 0.0), 3f, 0.9f)
             for (row in 0..HeartVaultPiece.GATE_TOP) {
                 PitArena.openGateStep(world, row)
+                // every row of the portcullis rumbles through the floor
+                BloodFx.shake(world, gateFront, 36.0, 0.35f, 6)
                 if (row == 2) cerb.act(CerberusEntity.WAKE)
                 wait(5)
             }
@@ -175,16 +243,12 @@ class PitScenes(val world: ServerWorld, private val mino: MinotaurEntity, privat
             // 6: the Cerberus walks out of its kennel
             Cine.camera(everyone, rel(10.0, 2.0, -15.0), rel(12.0, 2.2, -12.0), Vec3d.ZERO, Vec3d.ZERO, 80, 60.0, 56.0, cerb, 1.6)
             cerb.yaw = 0f; cerb.bodyYaw = 0f; cerb.headYaw = 0f
-            glide(cerb, gateInside, 22, smooth = false)
-            // out through the gate and round the altar in front of it
+            // out through the gate and round the altar in front of it: one smooth prowl instead of three straight
+            // pieces with a snap turn at each corner
             val pastAltar = rel(4.5, 0.0, -27.0)
-            val turn = yawTo(cerb.entityPos, pastAltar)
-            cerb.yaw = turn; cerb.bodyYaw = turn; cerb.headYaw = turn
-            glide(cerb, pastAltar, 20, smooth = false)
-            val turn2 = yawTo(cerb.entityPos, cerberusStart)
-            cerb.yaw = turn2; cerb.bodyYaw = turn2; cerb.headYaw = turn2
-            glide(cerb, cerberusStart, 30, smooth = false)
-            cerb.yaw = 0f; cerb.bodyYaw = 0f; cerb.headYaw = 0f
+            prowl(cerb, listOf(gateInside, pastAltar, cerberusStart), 66)
+            // it turns to face the pit (small steps on the spot)
+            turnTo(cerb, 0f, 6, 12f)
             // 7: three heads, one roar - title card
             Cine.orbit(everyone, cerb.entityPos, 7.5, 1.6, 55.0, 115.0, 110, 60.0, 52.0, cerb, 1.7, 6.0, 1.9)
             cerb.act(CerberusEntity.GROWL)
@@ -255,7 +319,12 @@ class PitScenes(val world: ServerWorld, private val mino: MinotaurEntity, privat
             wait(36)
             Cine.title(everyone, "boss.hha_blood.title.unleashed", "boss.hha_blood.title.unleashed.sub", 80, 0xFF6A2A)
             sound(BossSounds.STINGER, at, 3f, 1.1f)
-            wait(80)
+            wait(10)
+            // the front paws come down (RISE animation tick 46)
+            sound(BossSounds.IMPACT_HEAVY, at, 3.5f, 1.0f)
+            BloodFx.shake(world, at, 60.0, 1.2f, 12)
+            world.spawnParticles(ParticleTypes.CLOUD, at.x, at.y + 0.2, at.z, 24, 2.0, 0.1, 2.0, 0.04)
+            wait(70)
         }
         return PitFight.SceneRun("cerberus_rises", steps.iterator(), true) {
             cerb.unleashed = true
@@ -300,12 +369,12 @@ class PitScenes(val world: ServerWorld, private val mino: MinotaurEntity, privat
             BloodFx.shake(world, mino.entityPos, 90.0, 1.8f, 30)
             say(Cine.SPEAKER_MINOTAUR, "fall.4")
             // the jump into the pit
-            Cine.camera(everyone, rel(15.0, 3.0, -8.0), rel(13.0, 2.4, -11.0), rel(0.0, 9.0, -31.0), rel(0.0, 1.0, -22.0), 60, 66.0, 60.0)
+            Cine.camera(everyone, rel(15.0, 3.0, -8.0), rel(13.0, 2.4, -11.0), Vec3d.ZERO, Vec3d.ZERO, 70, 66.0, 60.0, mino, 2.4)
             mino.act(MinotaurEntity.JUMP_DOWN)
             sound(BossSounds.MINOTAUR_GRUNT, mino.entityPos, 3f, 0.7f)
             wait(8)
             glide(mino, minotaurLanding, 24, arc = 5.0, smooth = false)
-            mino.act(MinotaurEntity.ROAR)
+            // JUMP_DOWN keeps going: the axe slams into the floor as he lands, he stays down a moment
             val land = mino.entityPos
             sound(BossSounds.IMPACT_HEAVY, land, 5f, 0.7f)
             sound(BossSounds.AXE_IMPACT, land, 4f, 0.7f)
@@ -313,8 +382,11 @@ class PitScenes(val world: ServerWorld, private val mino: MinotaurEntity, privat
             world.spawnParticles(ParticleTypes.EXPLOSION_EMITTER, land.x, land.y + 0.3, land.z, 1, 0.0, 0.0, 0.0, 0.0)
             world.spawnParticles(ParticleTypes.CLOUD, land.x, land.y + 0.3, land.z, 40, 3.0, 0.2, 3.0, 0.05)
             PitHazards.shockRing(mino, land, 16.0, 0.8, 0f, false)
+            wait(12)
+            mino.act(MinotaurEntity.ROAR)
             sound(BossSounds.MINOTAUR_ROAR, land, 5f, 0.9f)
-            wait(24)
+            BloodFx.shake(world, land, 60.0, 1.0f, 18)
+            wait(12)
             Cine.orbit(everyone, land, 8.0, 2.4, 60.0, 110.0, 120, 58.0, 50.0, mino, 3.0)
             wait(10)
             Cine.title(everyone, "boss.hha_blood.title.minotaur", "boss.hha_blood.title.minotaur.sub", 90)
@@ -336,9 +408,27 @@ class PitScenes(val world: ServerWorld, private val mino: MinotaurEntity, privat
     // ---------------------------------------------------------------------------------------------
 
     private var wallsRaised = false
+    private var placedInMaze = false
+
+    /** He goes to the lair in the middle of the maze, the players are scattered into its far corridors. */
+    private fun placeInMaze() {
+        placedInMaze = true
+        val mid = PitArena.mid()
+        place(mino, mid, mino.yaw)
+        val list = players
+        val spots = PitLabyrinth.spreadSpots(mid, list.size, 18.0, 10.0, world.random)
+        for ((i, p) in list.withIndex()) {
+            val s = spots.getOrNull(i) ?: continue
+            p.teleport(world, s.x, s.y, s.z, emptySet(), yawTo(s, mid), 0f, false)
+            p.velocity = Vec3d.ZERO
+            p.velocityDirty = true
+            p.fallDistance = 0.0
+        }
+    }
 
     fun labyrinth(): PitFight.SceneRun {
         wallsRaised = false
+        placedInMaze = false
         val steps = sequence {
             val everyone = players
             val at = mino.entityPos
@@ -353,18 +443,44 @@ class PitScenes(val world: ServerWorld, private val mino: MinotaurEntity, privat
             wait(18)
             sound(BossSounds.AXE_IMPACT, at, 4f, 0.6f)
             BloodFx.shake(world, at, 100.0, 2.0f, 30)
-            PitHazards.raiseWalls(world, mino, 380)
+            BloodFx.screenFlash(world, at, 80.0, 0x300000, 0.4f, 8)
+            // black: when it lifts, the maze is growing out of the floor and everyone is somewhere inside
+            Cine.fade(everyone, 0x000000, 0.0, 1.0, 10)
+            wait(12)
+            PitLabyrinth.raise(world, false)
             wallsRaised = true
-            Cine.orbit(everyone, rel(0.0, 0.0, 0.0), 30.0, 24.0, toMid + 160.0, toMid + 220.0, 170, 70.0, 66.0, null, 0.0)
-            wait(20)
+            placeInMaze()
+            mino.act(MinotaurEntity.ROAR)
+            Cine.fade(everyone, 0x000000, 1.0, 0.0, 16)
+            // from high above: wave after wave of walls, from his lair outwards
+            Cine.orbit(everyone, rel(0.0, 0.0, 0.0), 24.0, 30.0, toMid + 160.0, toMid + 240.0, 200, 70.0, 62.0, null, 0.0, radiusTo = 14.0, heightTo = 36.0)
+            wait(16)
             say(Cine.SPEAKER_MINOTAUR, "laby.2")
             say(Cine.SPEAKER_MINOTAUR, "laby.3")
+            // the blood of the pit rises around the players
+            val p0 = players.firstOrNull()
+            if (p0 != null) {
+                val a = p0.yaw.toDouble() + 90.0
+                Cine.orbit(everyone, p0.entityPos, 3.6, 1.9, a - 40.0, a + 30.0, 130, 62.0, 52.0, p0, 1.1)
+            }
+            for (i in 0 until 40) {
+                for (p in players) {
+                    val r = 1.4 - i * 0.02
+                    val ang = i * 0.5
+                    world.spawnParticles(BloodFx.dust(BloodFx.BRIGHT, 1.2f), p.x + kotlin.math.cos(ang) * r, p.y + 0.1 + i * 0.03, p.z + kotlin.math.sin(ang) * r, 2, 0.05, 0.05, 0.05, 0.0)
+                    if (i % 4 == 0) world.spawnParticles(BloodParticles.DRIP_FALL, p.x, p.y + 2.2, p.z, 3, 0.4, 0.1, 0.4, 0.0)
+                }
+                if (i % 10 == 0) for (p in players) sound(net.minecraft.sound.SoundEvents.ENTITY_WARDEN_HEARTBEAT, p.entityPos, 1.2f, 0.5f)
+                yield(Unit)
+            }
+            say(Cine.SPEAKER_NARRATOR, "laby.4")
             Cine.title(everyone, "boss.hha_blood.title.labyrinth", "boss.hha_blood.title.labyrinth.sub", 80)
             sound(BossSounds.STINGER, at, 3f, 1.0f)
             wait(80)
         }
         return PitFight.SceneRun("labyrinth", steps.iterator(), true) {
-            if (!wallsRaised) PitHazards.raiseWalls(world, mino, 380)
+            if (!wallsRaised) PitLabyrinth.raise(world, true)
+            if (!placedInMaze) placeInMaze()
             mino.act(MinotaurEntity.IDLE)
             mino.scripted = false
             PitFight.beginStage(world, PitFight.LABYRINTH)
@@ -372,22 +488,35 @@ class PitScenes(val world: ServerWorld, private val mino: MinotaurEntity, privat
     }
 
     // ---------------------------------------------------------------------------------------------
-    // Stage 4 -> 5: he takes the Cerberus' hellfire
+    // Stage 4 -> 5: he takes the Cerberus' hellfire - and goes berserk
     // ---------------------------------------------------------------------------------------------
 
     fun lastBull(): PitFight.SceneRun {
+        var gathered = false
         val steps = sequence {
             val everyone = players
-            val at = mino.entityPos
+            // He may be airborne or beside the stands. Stage the toss in the lair under a brief black fade.
+            Cine.fade(everyone, 0x000000, 0.0, 1.0, 8)
+            wait(10)
+            val at = PitArena.mid()
+            place(mino, at, -90f)
+            PitArena.smashWalls(world, at, 11.0)
+            Cine.fade(everyone, 0x000000, 1.0, 0.0, 10)
             val toMid = angleDeg(at, PitArena.mid())
-            PitFight.gather(world, at, 12.0, toMid)
             Cine.music(everyone, BossSounds.MUSIC_TENSION)
             mino.act(MinotaurEntity.KNEEL)
             sound(BossSounds.MINOTAUR_HURT, at, 3f, 0.8f)
-            Cine.orbit(everyone, at, 5.5, 2.0, toMid - 20.0, toMid + 20.0, 120, 52.0, 46.0, mino, 2.4)
+            // from above the walls: he kneels in his own maze
+            Cine.orbit(everyone, at, 8.0, 7.5, toMid - 20.0, toMid + 30.0, 130, 60.0, 50.0, mino, 2.4)
             say(Cine.SPEAKER_MINOTAUR, "last.1")
+            // He deliberately throws the axe away before becoming a bare-handed brawler.
+            Cine.orbit(everyone, at, 8.5, 3.0, toMid - 40.0, toMid + 20.0, 55, 62.0, 58.0, mino, 2.6)
+            mino.act(MinotaurEntity.DISCARD)
+            wait(14)
+            sound(BossSounds.AXE_SWING, at, 3f, 0.7f)
+            PitHazards.discardAxe(mino)
+            wait(30)
             // three spirit flames come out of the kennel
-            Cine.camera(everyone, at.add(9.0, 5.0, 9.0), at.add(7.0, 4.0, 7.0), Vec3d.ZERO, Vec3d.ZERO, 110, 66.0, 60.0, mino, 2.4)
             val gate = gateFront
             sound(BossSounds.CERBERUS_HOWL, gate, 3f, 1.4f)
             mino.act(MinotaurEntity.ABSORB)
@@ -397,7 +526,7 @@ class PitScenes(val world: ServerWorld, private val mino: MinotaurEntity, privat
                     val side = (k - 1) * 3.0
                     val from = gate.add(side, 0.0, 0.0)
                     val to = at.add(0.0, 2.6, 0.0)
-                    val p = from.lerp(to, t).add(0.0, Math.sin(t * Math.PI) * 6.0, 0.0)
+                    val p = from.lerp(to, t).add(0.0, Math.sin(t * Math.PI) * 9.0, 0.0)
                     world.spawnParticles(BloodParticles.FLAME, p.x, p.y, p.z, 6, 0.25, 0.25, 0.25, 0.01)
                     world.spawnParticles(ParticleTypes.SOUL_FIRE_FLAME, p.x, p.y, p.z, 1, 0.2, 0.2, 0.2, 0.0)
                 }
@@ -408,18 +537,52 @@ class PitScenes(val world: ServerWorld, private val mino: MinotaurEntity, privat
             BloodFx.screenFlash(world, at, 80.0, 0xFF7A20, 0.5f, 14)
             BloodFx.shake(world, at, 80.0, 2.0f, 24)
             world.spawnParticles(BloodParticles.FLAME, at.x, at.y + 2.0, at.z, 140, 1.4, 1.6, 1.4, 0.14)
-            PitHazards.shockRing(mino, at, 14.0, 0.8, 0f, true)
             say(Cine.SPEAKER_NARRATOR, "last.2")
+            // close on his face: something breaks in him
+            val front = mino.forward()
+            Cine.camera(everyone, at.add(front.multiply(5.5)).add(0.0, 2.6, 0.0), at.add(front.multiply(3.8)).add(0.0, 3.2, 0.0),
+                Vec3d.ZERO, Vec3d.ZERO, 120, 55.0, 42.0, mino, 3.3)
+            mino.act(MinotaurEntity.RAGE)
+            for (i in 0 until 24) {
+                if (i % 3 == 0) world.spawnParticles(ParticleTypes.WHITE_SMOKE, at.x, at.y + 3.3, at.z, 0, 0.0, 1.0, 0.0, 0.12)
+                if (i % 6 == 0) sound(BossSounds.MINOTAUR_SNORT, at, 2.5f, 0.6f)
+                yield(Unit)
+            }
+            say(Cine.SPEAKER_MINOTAUR, "last.3")
+            // the berserker: the maze is blown apart
+            mino.berserk = true
             mino.act(MinotaurEntity.ROAR)
-            sound(BossSounds.MINOTAUR_ROAR, at, 5f, 0.8f)
+            sound(BossSounds.MINOTAUR_ROAR, at, 5f, 0.55f)
+            sound(BossSounds.IMPACT_HEAVY, at, 4f, 0.5f)
+            BloodFx.shake(world, at, 120.0, 2.8f, 40)
+            BloodFx.screenFlash(world, at, 80.0, 0xC01010, 0.55f, 16)
+            world.spawnParticles(BloodFx.dust(BloodFx.BRIGHT, 2.5f), at.x, at.y + 2.0, at.z, 160, 2.5, 2.0, 2.5, 0.0)
+            world.spawnParticles(ParticleTypes.LARGE_SMOKE, at.x, at.y + 1.0, at.z, 60, 2.0, 1.0, 2.0, 0.2)
+            PitHazards.shockRing(mino, at, 36.0, 1.1, 0f, true)
+            PitHazards.collapseWalls()
+            Cine.orbit(everyone, at, 13.0, 11.0, toMid + 60.0, toMid + 150.0, 80, 70.0, 76.0, mino, 2.6)
+            for (i in 0 until 40) {
+                if (i % 5 == 0) sound(BossSounds.IMPACT_HEAVY, rel(world.random.nextDouble() * 50 - 25, 2.0, world.random.nextDouble() * 50 - 25), 2.5f, 0.7f)
+                yield(Unit)
+            }
+            // now everyone stands in front of him again
+            PitFight.gather(world, at, 12.0, toMid)
+            gathered = true
+            say(Cine.SPEAKER_NARRATOR, "last.4")
             Cine.orbit(everyone, at, 8.0, 1.2, toMid + 30.0, toMid + 70.0, 100, 60.0, 68.0, mino, 3.0)
-            Cine.title(everyone, "boss.hha_blood.title.last", "boss.hha_blood.title.last.sub", 80, 0xFF6A2A)
+            mino.act(MinotaurEntity.STOMP)
+            Cine.title(everyone, "boss.hha_blood.title.last", "boss.hha_blood.title.last.sub", 80, 0xFF3A2A)
             sound(BossSounds.STINGER, at, 3f, 0.85f)
             wait(84)
         }
         return PitFight.SceneRun("last_bull", steps.iterator(), true) {
+            // the maze is gone for good
+            PitHazards.clear(world)
+            PitHazards.discardAxe(mino, instant = true)
+            if (!gathered) PitFight.gather(world, mino.entityPos, 12.0, angleDeg(mino.entityPos, PitArena.mid()))
             mino.burning = true
-            mino.fury = 4
+            mino.berserk = true
+            mino.fury = 6
             mino.act(MinotaurEntity.IDLE)
             mino.scripted = false
             PitFight.beginStage(world, PitFight.LAST_BULL)
@@ -437,12 +600,16 @@ class PitScenes(val world: ServerWorld, private val mino: MinotaurEntity, privat
             val toMid = angleDeg(at, PitArena.mid())
             PitFight.gather(world, at, 10.0, toMid)
             Cine.music(everyone, null)
-            mino.axeOut = false
+            mino.axeOut = true
             mino.act(MinotaurEntity.KNEEL)
             sound(BossSounds.MINOTAUR_HURT, at, 4f, 0.7f)
             val front = mino.forward()
             Cine.camera(everyone, at.add(front.multiply(6.5)).add(0.0, 2.0, 0.0), at.add(front.multiply(4.2)).add(0.0, 2.4, 0.0),
                 Vec3d.ZERO, Vec3d.ZERO, 260, 50.0, 40.0, mino, 2.2)
+            // his knee hits the floor (KNEEL animation tick ~14)
+            wait(13)
+            sound(BossSounds.IMPACT_HEAVY, at, 2.5f, 0.7f)
+            BloodFx.shake(world, at, 30.0, 0.7f, 10)
             say(Cine.SPEAKER_MINOTAUR, "end.1", 6)
             say(Cine.SPEAKER_MINOTAUR, "end.2")
             mino.act(MinotaurEntity.DEATH)

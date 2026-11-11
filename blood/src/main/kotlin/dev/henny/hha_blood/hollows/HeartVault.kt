@@ -153,7 +153,7 @@ class HeartVaultPiece : StructurePiece {
             if (abs(dx) <= KENNEL_HALF + 1 && dz in (KENNEL_MIN_DZ - 1)..GATE_Z) return true    // kennel under the balcony
             if (abs(dz) <= 5 && dx in 0..(R.toInt() + SIDE_TUNNEL + 9)) return true            // east tunnel + alcove
             if (abs(dx) <= 3 && dz >= 0 && dz <= R + 30) return true                           // south tunnel
-            return PitApproach.columnUsed(dx, dz)                                              // tower, landmark, vestibule, ring
+            return PitApproach.columnUsed(dx, dz)                                              // tower, landmark, hall, ring
         }
 
         /** Distance measure of the east alcove (< 4.8 = part of the alcove). */
@@ -180,17 +180,13 @@ class HeartVaultPiece : StructurePiece {
                 val southEnd = shaftCenter(origin).z - origin.z
                 if (abs(dx) <= 6 + margin && dz in 0..(southEnd + margin)) return true
             }
-            val s = shaftCenter(origin)
-            val sdx = x - s.x
-            val sdz = z - s.z
-            if (y >= FLOOR - 4 - margin && sdx * sdx + sdz * sdz <= (8 + margin) * (8 + margin)) return true
             return PitApproach.occupied(dx, dy, dz, margin)
         }
 
         private fun box(origin: BlockPos): BlockBox {
             val shaft = shaftCenter(origin)
             val rr = (R + SIDE_TUNNEL + 9).toInt()
-            return BlockBox(origin.x - rr, FLOOR - 7, origin.z - rr, origin.x + rr, 122, max(origin.z + rr, shaft.z + 8))
+            return BlockBox(origin.x - rr, FLOOR - 7, origin.z - rr, origin.x + rr, 122, max(origin.z + PitApproach.MAX_DZ, shaft.z + 8))
         }
 
         // ------------------------------------------------------------------------------------- blocks
@@ -219,7 +215,7 @@ class HeartVaultPiece : StructurePiece {
             special(dx, dy, dz)?.let { return it }
             val r = sqrt((dx * dx + dz * dz).toDouble())
             kennel(dx, dy, dz)?.let { return it }
-            // the way in: stair tower + landmark, vestibule, procession ring (never inside the dome)
+            // the way in: stair tower + landmark, processional hall, procession ring (never inside the dome)
             if (r > R + SHELL - 0.5) PitApproach.block(dx, dy, dz)?.let { return it }
             oldKennel(dx, dy, dz, r)?.let { return it }
             alcove(dx, dy, dz)?.let { return it }
@@ -415,15 +411,17 @@ class HeartVaultPiece : StructurePiece {
         }
 
         /**
-         * Signature positions of the way in (round "klarer Weg"): glow in the middle of the stair tower floor, the
-         * eyes of the outer skull face, a vestibule lamp, the procession ring floor in the west (through the sealed
-         * old kennel) and in the north (behind the kennel). Any three wrong = the arena is rebuilt.
+         * Signature positions of the way in (round "Weg laenger", differ from v0.9 where the tower stood right behind a
+         * small vestibule): glow in the middle of the moved tower floor, the watching eyes of the horned skull face, a
+         * keystone of the chasm bridge, a pillar of the hall of horns, the procession ring floor in the west (through
+         * the sealed old kennel) and in the north (behind the kennel). Any three wrong = the arena is rebuilt.
          */
         val APPROACH_SIGNATURES: List<Triple<Int, Int, Int>> = listOf(
-            Triple(0, -1, PitApproach.TOWER_DZ),
-            Triple(2, 6, PitApproach.VEST_FACE),
-            Triple(-2, 6, PitApproach.VEST_FACE),
-            Triple(PitApproach.VEST_HALF, 3, 49),
+            Triple(0, PitApproach.TOWER_BASE - 1, PitApproach.TOWER_DZ),
+            Triple(4, 9, PitApproach.GATE_FACE),
+            Triple(-4, 9, PitApproach.GATE_FACE),
+            Triple(0, PitApproach.MID_F + 4, 80),
+            Triple(4, PitApproach.MID_F + 4, 94),
             Triple(-62, -1, 0),
             Triple(0, -1, -62),
         )
@@ -726,8 +724,8 @@ class HeartVaultPiece : StructurePiece {
         private fun tunnel(dx: Int, dy: Int, dz: Int, r: Double): BlockState? {
             if (dy < -1 || dy > 5) return null
             // the arena centre is always a chunk centre (x/z = 16k + 8), so the shaft is always 64 blocks south
-            // south: through the skull and the dome shell up to the vestibule (PitApproach, outer skull face at dz 47)
-            val southEnd = PitApproach.VEST_FACE - 1
+            // south: through the skull and the dome shell up to the gate hall (PitApproach, outer skull face at dz 47)
+            val southEnd = PitApproach.GATE_FACE - 1
             val along: Int
             val lat: Int
             when {

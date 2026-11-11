@@ -1,4 +1,4 @@
-version = "0.9.0"
+version = "0.13.0"
 
 extensions.configure<BasePluginExtension> {
     archivesName.set("HHA_Blood")

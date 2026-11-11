@@ -19,7 +19,8 @@ object HudLineOverlay {
     private var shownAt = 0L
 
     fun show(p: HudLinePayload) {
-        text = Text.translatable(p.key, *p.args.toTypedArray())
+        // "@key:<id>" = the key bound to that keybinding (e.g. HHA's Ability 2)
+        text = Text.translatable(p.key, *p.args.map { a -> if (a.startsWith("@key:")) Text.keybind(a.removePrefix("@key:")) else Text.literal(a) }.toTypedArray())
         color = p.color
         val now = System.currentTimeMillis()
         if (now > until) shownAt = now

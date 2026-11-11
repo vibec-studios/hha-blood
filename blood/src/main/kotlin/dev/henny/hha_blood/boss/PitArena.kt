@@ -5,6 +5,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder
 import dev.henny.hha_blood.HhaBlood
 import dev.henny.hha_blood.hollows.HeartVaultPiece
 import dev.henny.hha_blood.hollows.HollowsRegion
+import dev.henny.hha_blood.hollows.PitApproach
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents
 import net.fabricmc.fabric.api.event.player.UseBlockCallback
 import net.fabricmc.fabric.api.event.player.UseItemCallback
@@ -113,7 +114,7 @@ object PitArena {
     fun isProtected(world: World, pos: BlockPos): Boolean {
         if (world.registryKey != World.NETHER) return false
         val c = center() ?: return false
-        if (abs(pos.x - c.x) > 80 || abs(pos.z - c.z) > 90) return false
+        if (abs(pos.x - c.x) > 80 || pos.z - c.z < -90 || pos.z - c.z > PitApproach.MAX_DZ + 10) return false
         return HeartVaultPiece.occupied(c, pos.x, pos.y, pos.z, 1)
     }
 
@@ -230,46 +231,19 @@ object PitArena {
 
     // ------------------------------------------------------------------------------------- labyrinth walls
 
-    /** A wall segment that rises out of the floor (positions on the floor, height [height]). */
-    class RisingWall(val columns: List<BlockPos>, val height: Int, var level: Int = 0, var life: Int)
-
-    /** Positions for labyrinth wall arcs in the middle ring (avoiding pillars, the altar and the players' feet). */
-    fun labyrinthColumns(world: ServerWorld, seed: Int, avoid: List<Vec3d>): List<BlockPos> {
-        val c = center() ?: return emptyList()
-        val out = ArrayList<BlockPos>()
-        val rng = java.util.Random(seed.toLong())
-        // three arcs on two rings + two radial walls, each with a gap
-        val rings = listOf(13.0, 22.0, 29.0)
-        for ((ri, rr) in rings.withIndex()) {
-            val start = rng.nextDouble() * Math.PI * 2
-            val span = Math.PI * (1.1 + rng.nextDouble() * 0.5)
-            val steps = (rr * span).toInt()
-            for (s in 0..steps) {
-                val a = start + span * s / steps
-                val x = c.x + (Math.cos(a) * rr).toInt()
-                val z = c.z + (Math.sin(a) * rr).toInt()
-                out += BlockPos(x, HeartVaultPiece.FLOOR, z)
-            }
-            if (ri < 2) {
-                val a = start + span + 0.3
-                for (k in rr.toInt()..rings[ri + 1].toInt()) out += BlockPos(c.x + (Math.cos(a) * k).toInt(), HeartVaultPiece.FLOOR, c.z + (Math.sin(a) * k).toInt())
-            }
-        }
-        return out.distinct().filter { p ->
-            val dx = (p.x - c.x).toDouble()
-            val dz = (p.z - c.z).toDouble()
-            HeartVaultPiece.pillarAt(dx, dz, 1.5) < 0 &&
-                avoid.none { it.squaredDistanceTo(p.x + 0.5, it.y, p.z + 0.5) < 2.5 * 2.5 } &&
-                world.getBlockState(p).isAir
-        }
-    }
+    /** A wall segment that rises out of the floor (positions on the floor, height [height]); starts after [delay] ticks, [glow] columns get a glowing cap. */
+    class RisingWall(val columns: List<BlockPos>, val height: Int, var level: Int = 0, var life: Int, var delay: Int = 0, val glow: Set<BlockPos> = emptySet())
 
     /** Raises a wall by one layer; true when it is complete. */
     fun riseStep(world: ServerWorld, wall: RisingWall): Boolean {
         if (wall.level >= wall.height) return true
-        val state = if (wall.level == wall.height - 1) dev.henny.hha_blood.hollows.HollowsBlocks.CHISELED_BLOOD_STONE.defaultState
-            else dev.henny.hha_blood.hollows.HollowsBlocks.BLOOD_STONE_BRICKS.defaultState
+        val top = wall.level == wall.height - 1
         for (col in wall.columns) {
+            val state = when {
+                top && col in wall.glow -> dev.henny.hha_blood.hollows.HollowsBlocks.VEIN_STONE.defaultState
+                top -> dev.henny.hha_blood.hollows.HollowsBlocks.CHISELED_BLOOD_STONE.defaultState
+                else -> dev.henny.hha_blood.hollows.HollowsBlocks.BLOOD_STONE_BRICKS.defaultState
+            }
             val p = col.up(wall.level)
             val now = world.getBlockState(p)
             if (now.isAir || now.isOf(Blocks.FIRE)) setTemp(world, p, state)
@@ -295,7 +269,7 @@ object PitArena {
         val base = BlockPos.ofFloored(at)
         val r = radius.toInt() + 1
         val pos = BlockPos.Mutable()
-        for (x in -r..r) for (y in 0..4) for (z in -r..r) {
+        for (x in -r..r) for (y in 0 until PitLabyrinth.WALL_H) for (z in -r..r) {
             pos.set(base.x + x, HeartVaultPiece.FLOOR + y, base.z + z)
             if (Vec3d.ofCenter(pos).squaredDistanceTo(at.x, pos.y + 0.5, at.z) > radius * radius) continue
             if (designAt(pos)?.isAir != true) continue
@@ -320,7 +294,7 @@ object PitArena {
         if (checked) return
         val c = center() ?: return
         // every chunk of the arena must be loaded for the check
-        for (cx in ((c.x - 70) shr 4)..((c.x + 70) shr 4)) for (cz in ((c.z - 70) shr 4)..((c.z + 70) shr 4)) {
+        for (cx in ((c.x - 70) shr 4)..((c.x + 70) shr 4)) for (cz in ((c.z - 70) shr 4)..((c.z + MAX_DZ) shr 4)) {
             if (!ready(world, cx, cz)) return
         }
         checked = true
@@ -332,7 +306,7 @@ object PitArena {
         while (total < 400 && tries < 20000) {
             tries++
             val dx = rng.nextInt(141) - 70
-            val dz = rng.nextInt(141) - 70
+            val dz = rng.nextInt(MAX_DZ + 71) - 70
             val dy = rng.nextInt(24) - 1
             if (!HeartVaultPiece.columnUsed(dx, dz)) continue
             val want = HeartVaultPiece.design(dx, dy, dz) ?: continue
@@ -364,7 +338,10 @@ object PitArena {
         }
         HhaBlood.LOGGER.info("Slaughter Pit: design check {}/{} random blocks match ({}), {}/{} signature blocks wrong",
             same, total, "%.2f".format(ratio), wrong, sig.size)
-        if (ratio < 0.97 || wrong >= 3) startUpgrade()
+        // the way in of v0.9 (tower right behind the vestibule) is still standing: rebuild and clear it
+        legacyPending = hasLegacyApproach(world, c)
+        if (legacyPending) HhaBlood.LOGGER.info("Slaughter Pit: the old approach of v0.9 is still there - it will be cleared")
+        if (ratio < 0.97 || wrong >= 3 || legacyPending) startUpgrade()
     }
 
     private fun st(world: ServerWorld, pos: BlockPos): BlockState = world.getBlockState(pos)
@@ -372,43 +349,128 @@ object PitArena {
     /** Chunk completely generated and loaded (isChunkLoaded is already true while it is still generating). */
     fun ready(world: ServerWorld, cx: Int, cz: Int): Boolean = world.chunkManager.getWorldChunk(cx, cz) != null
 
+    /** The design reaches this far south (the moved stair tower + plaza). */
+    private const val MAX_DZ = PitApproach.MAX_DZ
+
+    /** The v0.9 approach (tower at dz 61) still stands and is cleared in a second phase of the rebuild. */
+    private var legacyPending = false
+    private var legacyJob: Iterator<Pair<Int, Int>>? = null
+
+    /**
+     * v0.9 had its stair tower right behind a small vestibule: its blood elevator above the new gate hall (or its
+     * glowing tower floor) means that approach still stands. Both positions are natural rock / plain floor in the
+     * current design, so this stays false once the old approach is cleared.
+     */
+    private fun hasLegacyApproach(world: ServerWorld, c: BlockPos): Boolean {
+        val z = c.z + PitApproach.OLD_TOWER_DZ
+        if (world.getBlockState(BlockPos(c.x, HeartVaultPiece.FLOOR + 20, z)).isOf(dev.henny.hha_blood.hollows.PitBlocks.BLOOD_FALL)) return true
+        return world.getBlockState(BlockPos(c.x, HeartVaultPiece.FLOOR - 1, z)).isOf(dev.henny.hha_blood.hollows.PitBlocks.BLOOD_GLOW)
+    }
+
     private fun startUpgrade() {
         val cols = ArrayList<Pair<Int, Int>>()
-        for (dx in -70..70) for (dz in -70..70) if (HeartVaultPiece.columnUsed(dx, dz)) cols += dx to dz
+        for (dx in -70..70) for (dz in -70..MAX_DZ) if (HeartVaultPiece.columnUsed(dx, dz)) cols += dx to dz
         upgradeColumns = cols.size
         upgradeJob = cols.iterator()
+        legacyJob = null
         HhaBlood.LOGGER.info("Slaughter Pit: the arena was built by an older version - rebuilding {} columns", cols.size)
     }
 
-    fun upgrading(): Boolean = upgradeJob != null
+    fun upgrading(): Boolean = upgradeJob != null || legacyJob != null
 
     /** The design check ran and no rebuild is pending. */
-    fun settled(): Boolean = checked && upgradeJob == null
+    fun settled(): Boolean = checked && !upgrading()
 
-    /** Rebuilds a slice of the arena per tick (old arenas from v0.4 - v0.6). */
+    /**
+     * Rebuilds a slice of the arena per tick (old arenas from v0.4 - v0.9). Phase 1 builds the current design, phase 2
+     * (only if the v0.9 approach was found) clears the old tower, plaza, landmark and causeways (PitApproach.legacy).
+     * Nobody gets buried: whoever ends up inside blocks is put into the gate hall, whoever stands on the old approach
+     * when it goes is put onto the new plaza.
+     */
     fun tickUpgrade(world: ServerWorld) {
-        val job = upgradeJob ?: return
-        val c = center() ?: run { upgradeJob = null; return }
+        val c = center() ?: run { upgradeJob = null; legacyJob = null; return }
         val pos = BlockPos.Mutable()
+        val job = upgradeJob
+        if (job != null) {
+            var n = 0
+            while (job.hasNext() && n < 350) {
+                val (dx, dz) = job.next()
+                n++
+                for (y in (HeartVaultPiece.FLOOR - 7)..HeartVaultPiece.TOP_Y) {
+                    val want = HeartVaultPiece.design(dx, y - HeartVaultPiece.FLOOR, dz) ?: continue
+                    pos.set(c.x + dx, y, c.z + dz)
+                    if (world.getBlockState(pos) != want) world.setBlockState(pos, want, SET_FLAGS)
+                }
+            }
+            rescuePlayers(world, c, false)
+            if (!job.hasNext()) {
+                upgradeJob = null
+                // old blood-lake leftovers are fluid sources: the new design replaced them above
+                HhaBlood.LOGGER.info("Slaughter Pit: rebuild finished ({} columns)", upgradeColumns)
+                if (legacyPending) {
+                    val cols = ArrayList<Pair<Int, Int>>()
+                    for (dx in -70..70) for (dz in -70..70) if (PitApproach.legacyColumn(dx, dz)) cols += dx to dz
+                    legacyJob = cols.iterator()
+                    HhaBlood.LOGGER.info("Slaughter Pit: clearing the old approach of v0.9 ({} columns)", cols.size)
+                    rescuePlayers(world, c, true)
+                }
+            }
+            return
+        }
+        val old = legacyJob ?: return
+        val gen = world.chunkManager.chunkGenerator
+        val noise = world.chunkManager.noiseConfig
         var n = 0
-        while (job.hasNext() && n < 350) {
-            val (dx, dz) = job.next()
+        var changed = 0
+        while (old.hasNext() && n < 60) {
+            val (dx, dz) = old.next()
             n++
+            val x = c.x + dx
+            val z = c.z + dz
+            val column by lazy { gen.getColumnSample(x, z, world, noise) }
             for (y in (HeartVaultPiece.FLOOR - 7)..HeartVaultPiece.TOP_Y) {
-                val want = HeartVaultPiece.design(dx, y - HeartVaultPiece.FLOOR, dz) ?: continue
-                pos.set(c.x + dx, y, c.z + dz)
-                if (world.getBlockState(pos) != want) world.setBlockState(pos, want, SET_FLAGS)
+                val dy = y - HeartVaultPiece.FLOOR
+                val want = HeartVaultPiece.design(dx, dy, dz) ?: PitApproach.legacy(dx, dy, dz) { column.getState(y) } ?: continue
+                pos.set(x, y, z)
+                if (world.getBlockState(pos) != want) { world.setBlockState(pos, want, SET_FLAGS); changed++ }
             }
         }
-        if (!job.hasNext()) {
-            upgradeJob = null
-            // old blood-lake leftovers are fluid sources: the new design replaced them above
-            HhaBlood.LOGGER.info("Slaughter Pit: rebuild finished ({} columns)", upgradeColumns)
+        legacyChanged += changed
+        rescuePlayers(world, c, true)
+        if (!old.hasNext()) {
+            legacyJob = null
+            legacyPending = false
+            HhaBlood.LOGGER.info("Slaughter Pit: old approach cleared ({} blocks changed)", legacyChanged)
+            legacyChanged = 0
+        }
+    }
+
+    private var legacyChanged = 0
+
+    /** Where somebody standing on the v0.9 approach is put while it is cleared: the plaza of the moved tower. */
+    fun newPlazaSpot(): Vec3d = at(12.5, PitApproach.plazaDy().toDouble(), PitApproach.TOWER_DZ + 0.5)
+
+    private fun rescuePlayers(world: ServerWorld, c: BlockPos, legacyPhase: Boolean) {
+        for (p in world.players) {
+            if (p.isSpectator) continue
+            val dx = kotlin.math.floor(p.x).toInt() - c.x
+            val dz = kotlin.math.floor(p.z).toInt() - c.z
+            if (abs(dx) > 75 || dz < -75 || dz > MAX_DZ + 5) continue
+            val onOld = legacyPhase && PitApproach.legacyColumn(dx, dz) && p.y >= dev.henny.hha_blood.hollows.HollowsGen.FILL_TOP
+            val stuck = !world.isSpaceEmpty(p, p.boundingBox.contract(1.0E-3))
+            if (!onOld && !stuck) continue
+            val to = if (onOld) newPlazaSpot() else at(0.5, 0.0, HeartVaultPiece.R + 14.5)
+            HhaBlood.LOGGER.info("Slaughter Pit: moving {} out of the rebuild ({} -> {})", p.name.string, p.blockPos, BlockPos.ofFloored(to))
+            p.teleport(world, to.x, to.y, to.z, emptySet(), if (onOld) 90f else 180f, 0f, false)
+            p.velocity = Vec3d.ZERO
+            p.velocityDirty = true
+            p.fallDistance = 0.0
+            if (onOld) p.sendMessage(Text.translatable("boss.hha_blood.approach_moved").formatted(Formatting.DARK_RED, Formatting.ITALIC), false)
         }
     }
 
     /** Debug: rebuild now, no matter what the check says. */
     fun forceRebuild() { checked = true; startUpgrade() }
 
-    fun resetSession() { checked = false; upgradeJob = null }
+    fun resetSession() { checked = false; upgradeJob = null; legacyJob = null }
 }

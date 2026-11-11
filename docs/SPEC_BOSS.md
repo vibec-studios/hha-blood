@@ -1,3 +1,88 @@
+# Blood-Boss v0.13 (10.11.2026): Höhen-Hitbox und aktiveres Finale
+
+**Status:** v0.13.0 gebaut und in der Modrinth-Instanz installiert (ersetzt 0.12.0); Prüfsummen identisch. Clienttest: Axt +30/+5,5 Blöcke = 0 Schaden, am Boden = 20,25; fünf verschiedene KI-Attacken in Phase V in 16 Sekunden. Balance, Blutspur, Hinterhalt und Sprungwurf bestanden; kompletter Serverkampf inkl. Sieg und Arena-Wiederherstellung erfolgreich. Protokolle: blood/build/verification/v0.13.0/.
+
+- Physische Nahkampf-Kegel prüfen jetzt auch die Höhe: Spielerfüße von 2 Blöcken unter dem Angriff bis 1 Block über der Bosshöhe. Der Axt-Spaltschlag trifft nicht mehr beliebig weit nach oben, und er braucht Sichtkontakt. Die Blutspalten vom Einschlag haben zusätzlich eine untere Höhengrenze.
+- Phase V: jeweils die am längsten nicht benutzte verfügbare Attacke auswählen; Schild-Packen hat weiter Vorrang. Stampfen und Bodenaufreißen stehen auch im Nahkampf zur Verfügung. Kürzere Abklingzeiten für alle waffenlosen Attacken, etwas kürzere Pausen nach Faustkombo, Aufwärtshaken und Bodenaufreißen. Ausholzeiten, Verzögerungen und eigentliche Erholungsanimationen bleiben erhalten.
+- Bestehende Balance von v0.12 (weniger Schaden/mehr Ausdauer), Blutspur und großes Labyrinth bleiben erhalten.
+- Regressionstests: echte Axtschläge gegen Spieler auf gleicher Höhe, +5,5 und +30 Blöcken; Geometrieprüfung ober-/unterhalb; echte KI muss im Finale innerhalb von 30 Sekunden mindestens fünf unterschiedliche waffenlose Attacken einsetzen.
+
+---
+# Blood-Boss v0.12 (10.11.2026): weniger Schaden, längerer Kampf, schwerer Ringkampf
+
+**Status:** v0.12.0 gebaut und in der Modrinth-Instanz installiert (ersetzt 0.11.0); Prüfsummen stimmen überein. JAR zusätzlich in dist/HHA_Blood-0.12.0.jar. Kompletter Server-Bosstest erfolgreich; Clienttest für Phase V, Blutspur, Hinterhalt, tatsächliche Schadensmessung (7,11 statt 9,48 HP), eingehenden Schaden (10 -> 5), erfolgreiche Greif-/Sprungwurf-Sequenz und neue Angriffsanimationen erfolgreich. Screenshots geprüft; Protokolle in blood/build/verification/v0.12.0/.
+
+- Minotaurus (Phasen III-V): ausgehender Trefferschaden x0,75 gegenüber v0.11, eingehender Schaden x0,5 statt x0,8. Wegen Vanillas 1024-HP-Grenze bleibt der Lebensbalken bei 1024; vor Rüstung entsprechen die Reserven jetzt 2048 statt 1280 HP (+60 %). Cerberus bleibt unverändert.
+- Waffenloses Finale: verzögerte Hammerfaust (Treffer 14/28/62, Erholung bis 88), lange schwere Stampfkette (18/40/76 statt durch Raserei immer schneller), Bodenwellen bis 36 Blöcke weit. Die Trefferzeitpunkte sind fest und client/server synchron.
+- Greif-Anlauf aus 6-13 Blöcken, 24 Ticks Vorbereitung, Richtung wird vor dem letzten Anlauf festgelegt; verfehltes Packen macht ihn 24 Ticks angreifbar. Bei Schilden bleibt Packen die Antwort.
+- Bodenaufreißen: beide Hände bei Tick 26 in den Boden, sichtbarer Staub/Vorwarnung, bei Tick 46 hochreißen und eine überspringbare Druckwelle bis 40 Blöcke. Längere Erholung nach Sprung/Bodeneinschlag. Stampfen/Bodenschläge erzeugen physische Druckwellen statt Feuerwellen oder zufälligem Felsregen.
+- Blutspur, Hinterhalte, waffenloser Zustand und das große Labyrinth bleiben erhalten.
+
+---
+# Blood-Boss v0.11 (09.11.2026): waffenloses Finale, bleibende Blutspur, großer Irrgarten
+
+**Status:** v0.11.0 gebaut und in F:/Modrinth/profiles/1.21.11/mods installiert; 0.10.0 dort ersetzt. Server-Bosstest, voller Client-Kampf (inkl. Blutspur/Hinterhalt in Phase V, Sieg/Belohnungen, Totem/Tod/Reset) und gezielter Kameratest vom Arenarand erfolgreich. Screenshots visuell geprüft. Prüfprotokolle: blood/build/verification/v0.11.0/.
+
+- Phase V: Asterion wirft seine Axt in der Übergangsszene sichtbar zur Seite. Sie bleibt als ungefährliches Modell am Boden; auch nach Überspringen der Szene und im Finale kehrt sie nicht in seine Hand zurück.
+- Eigene waffenlose Kampfhaltung und Animationen: Links-/Rechtshaken mit abschließendem Hammerfaustschlag, Aufwärtshaken, doppelter Faustschlag auf den Boden, Packen/Suplex, Schulterrempler, Stampfen und Sprung mit Bodeneinschlag. Keine Axtangriffe, Axtwürfe oder Wirbel in Phase V. Faustkombos haben im Nahkampf Vorrang, feste Trefferzeitpunkte und Erholungsfenster. Eine kurze Schwarzblende setzt ihn vor dem Axtwurf in den freigeräumten Hort, damit auch Treffer am Arenarand oder im Sprung die Kamera nicht verdecken.
+- Blutspur bleibt nach dem Labyrinth in Phase V für alle über HHA Ability 2 erhalten (10 s Unsichtbarkeit, 19 s Abklingzeit, Hinterhalt x3 + Taumeln). Der Phasenwechsel setzt den Cooldown nicht zurück. Versteckte Spieler werden auch im Finale nicht als Sichtziel gewählt; Flächentreffer können weiterhin treffen.
+- Labyrinth: füllt jetzt fast den gesamten Kampfboden (~76 Blöcke Durchmesser), statt kleiner Innenmaze + 8 offener Randkammern. 229 verbundene Zellen; Raster 4, Korridore 3 breit (Minotaurus 1,9 breit), Mauern 7 hoch. Nur der zentrale 11x11-Hort bleibt offen. Geschlossene Außenkanten, lange verzweigte Wege, echte Sackgassen, nur 1,5 % zusätzliche Verbindungen. Bestehende Säulen/Altar und Türdurchgänge werden bei der Erzeugung berücksichtigt; abgeschnittene Taschen werden nicht benutzt. Spieler starten nach Wegentfernung weit hinten im Irrgarten.
+- Prüfungen: 16 feste Maze-Seeds auf Zellzahl, Sackgassen und Weglänge (je 229 Zellen, längste Wege mindestens 156 Blöcke; im Serverlauf 408 Blöcke); auf dem realen Kampfboden alle Korridore mit 3x3x4 Platz vom Hort erreichbar. Client-Test betätigt HHA Ability 2 auch in Phase V und prüft den anschließenden Hinterhalt. Server-Test meldet jeden bewaffneten Angriff in Phase V als Fehler.
+
+---
+# Blood-Boss v0.10 (Stand 08.11.2026): echtes Labyrinth mit Schleichen, Berserker, bessere Animationen, langer Weg
+
+Mats: "Animationen verbessern (in und ausserhalb der Cutscenes)", "Weg vom Treppenturm zur Arena laenger/dramatischer",
+"vierte Phase ein richtiges Labyrinth, man bekommt Blood Trail, er sieht dich nicht mehr und sagt immer was",
+"dritte Phase des Minotaurus (= Stufe 5) brutaler, Berserker wie Godfrey Phase 2".
+
+- **Stufe 4 = Labyrinth** (`boss/PitLabyrinth.kt`): Szene 3 neu - Axthieb, Schwarzblende, der Minotaurus steht im
+  Hort in der Mitte, die Spieler werden in ferne Gaenge verteilt (`spreadSpots`, >= 18 Bloecke, 10 auseinander), das
+  Labyrinth waechst in Wellen von der Mitte nach aussen (Kamera von oben). Generator: Zellen 5 Bloecke (4 breite Gaenge,
+  Mauern 5 hoch), Zellen mit i²+j² <= 33 (bis ~31 Bloecke, innerhalb der Saeulen), offener 3x3-Hort, Recursive
+  Backtracker + 13 % Schleifen, 8 Ausgaenge in die 8 Kammern zwischen den Saeulen (radiale Mauern ueber die Saeulen,
+  3 davon mit Durchgang), Pfosten-Kappen aus Aderstein (leuchten). ~610 Saeulen, 109 Zellen. `PitHazards.raiseMaze`
+  (Wellen per `RisingWall.delay`), steht die ganze Stufe, Ansturm/Wirbel/Sprung brechen durch.
+- **Blutspur fuer alle** (auch ohne Blood-Ruestung): HHA-Taste Ability 2 (H) -> eigene HHA-Ability `hha_blood:labyrinth_trail`
+  (vor Blood Trail registriert); HHAs eigene Ability-2-Faehigkeiten (Hell Fire Camp) werden in der Stufe ueber
+  `HhaEvents.ABILITY_CAST` umgeleitet. 10 s unsichtbar (`TrueInvis` + BloodDive-Abtauchen), Speed I, Abklingzeit 19 s.
+  HUD-Zeile zeigt Taste (`@key:`-Platzhalter -> `Text.keybind` im Client), Restzeit, Abklingzeit.
+- **Jagd-KI** (`MinotaurEntity.perceive/hunt/tickSniff`): sieht nur sichtbare Spieler (Sichtlinie bis 48, immer < 5.5),
+  Versteckte nur wenn er sie anrempelt (< 2.4 -> enttarnt, "Er hat dich ertastet"). Hoert Geraeusche (`PitLabyrinth.listen`:
+  Sprinten 13 Bloecke, Gehen 4.5, Landung 6, Schleichen/Stehen nichts; Versteckte +-2 Bloecke ungenau, Hinweis "Er hoert dich").
+  Laute Geraeusche > 11 Bloecke: Brüllen + Ansturm durch die Mauern; sonst hingehen. Ohne Spur: wandert zwischen Zellen,
+  schnueffelt (SNIFF 26, 40 Ticks) und bekommt eine Ahnung (75 %: Ziel = naechster Spieler +-3). Sprueche ueber
+  `Cine.dialog`: hunt.1-10, found.1-4, vanish.1-3, backstab.1-3, heard.1-3, scent.1-4 (Pause zwischen Spruechen).
+- **Hinterhalt**: Nahkampftreffer aus dem Blut = x3 (`PitLabyrinth.BACKSTAB`), er taumelt 40 Ticks (dann x1.5). Jeder
+  Angriff enttarnt. Bosstest: Hinterhalt 21 Schaden statt 8.
+- **Stufe 5 = Berserker** (`berserk`, getrackt): Szene 4 neu - kniet in seinem Labyrinth, nimmt das Hoellenfeuer, Nahaufnahme,
+  "Kein Labyrinth mehr. Keine Spiele mehr...", Schrei sprengt das Labyrinth (`PitHazards.collapseWalls`, Szene mit
+  `keepWalls`), Augen gluehen rot (Glow-Layer rot pulsierend), roter Dampf von Schultern und Nuestern. Werte: Windups x0.82,
+  Pause x0.7, +20 % Tempo, +8 % Schaden, Wut mind. 5, Axt steckt nur 60 % (32 Ticks). Neue Angriffe:
+  STOMP 27 (3 Stampfer, Schockringe 7/12.5/18, der dritte nach einem Hopser mit Felssturz), TACKLE 28 (Schulterrempler,
+  9 Ticks Sprint, danach evtl. Packen), SLAM 29 (Kriegssprung mit Krater, zwei Ringe, 6 Spalten; in der Raserei doppelt),
+  RAGE 30 (Wutschrei: Rueckstoss 10 Bloecke, 10 s volle Wut), SPLIT 31 (Axt durch den Boden ziehen, dann bricht die
+  Spalte als Kette von Blutgeysiren auf + 2 Seitenrisse). Packen wird zum Suplex (Sprung mit dem Opfer, 54 Schaden, Ring 13).
+  Kombos: Spaltschlag -> Fegen -> Rempler/Stampfen, Hornstoss -> Spaltschlag, Rempler -> Packen, Stampfen -> Sprung.
+  Kein Mauern-Hochziehen mehr in Stufe 5.
+- **Fix**: Axt war nach einem von einer Cutscene unterbrochenen Wurf fuer immer weg (`axeOut`) -> nur noch Hornstoesse.
+  `runScene` gibt ihm die Axt zurueck.
+- **Animationen** (Opus-Agent): Minotaurus mit Keyframe-Spuren auf dem Server-Windup (Ausholen -> Treffer genau auf dem
+  Schadens-Tick -> Nachschwung -> Erholung), Cross-Fades zwischen Aktionen, echter Gang (Hufe bleiben stehen, Hoehe aus den
+  Beinen), Federn fuer Umhang/Lendenschurz/Schwanz/Ohren/Kiefer, Mund bewegt sich beim Sprechen (`CinePlayer.mouth`).
+  Cerberus: Trab/Galopp, Pfoten bestimmen Neigung/Hoehe (Bodenhaftung), Koepfe einzeln (Blick, Ohren, Kiefer), Biss mit
+  Zerren. Cutscene-Kamera folgt mit kurzer Verzoegerung + leichtem Handkamera-Drift. Szenen 1/2 fluessiger.
+  `/hhablood boss mpose <action> [fury] [burning]` (Minotaurus ausserhalb des Kampfs; burning = auch Berserker),
+  `/hhablood boss walk`, Gametest-Modi `minotaur`, `walk`. Gemeinsame Helfer `client/boss/BossAnim.kt` (Ease, Spring, Motion).
+- **Weg laenger** (Opus-Agent, `hollows/PitApproach.kt`): vom Turmfuss ein ~66 Bloecke langer geschlossener Schlachtweg:
+  Gang der Gefesselten -> Halle der Hoerner -> Blutschlund (Knochenbruecke ueber Blutsee) -> grosse Treppe -> Schaedeltor
+  (Stierschaedel-Fassade = Tunnel in die Kuppel); Herzschlag wird lauter (Client). Bestehende Welten bekommen ihn ueber
+  den Arena-Umbau (neue Signaturen).
+- Tests: Bosstest (Labyrinth/Verstecken/Hinterhalt/Hoeren/Berserker-Angriffe geloggt) + Client-Gametest
+  (`minotaur,arena,fight`: Posen inkl. Berserker, Weg, Labyrinth von oben, H-Taste versteckt, Totem, Tod) gruen.
+
+---
+
 # Blood-Boss v0.9 (Stand 07.11.2026 abends): Koepfe brechen, Axt steckt, Schaden x0.6, neuer Cerberus, Weg zur Arena
 
 Aenderungen gegenueber v0.8 (auch in CLAUDE.md, Eintrag v0.9.0):

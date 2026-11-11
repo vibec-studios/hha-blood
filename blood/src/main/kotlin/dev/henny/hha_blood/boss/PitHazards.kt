@@ -12,6 +12,7 @@ import net.minecraft.particle.ParticleTypes
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.sound.SoundCategory
 import net.minecraft.sound.SoundEvent
+import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import org.joml.Quaternionf
 import org.joml.Vector3f
@@ -49,6 +50,17 @@ object PitHazards {
         list.clear()
         if (world != null) for (w in walls) while (!PitArena.sinkStep(world, w)) { /* sink fully */ }
         walls.clear()
+    }
+
+    /** Clears every hazard but leaves the walls standing (they are collapsed by the next cutscene). */
+    fun clearKeepWalls() {
+        list.forEach { it.remove() }
+        list.clear()
+    }
+
+    /** All raised walls sink now, layer by layer. */
+    fun collapseWalls() {
+        for (w in walls) { w.delay = 0; w.life = 1 }
     }
 
     fun tick(world: ServerWorld) {
@@ -165,7 +177,7 @@ object PitHazards {
                 // only on the ground (a jump clears it) and close to the ring's edge
                 if (abs(d - r) < 0.9 && p.y - c.y < 0.6 && p.isOnGround) {
                     hit += p.uuid
-                    if (boss.hurt(world, p, damage, fireSeconds = if (fire) 3f else 0f, kind = BossDamage.HELLFIRE)) boss.knock(p, c, 0.9, 0.45)
+                    if (boss.hurt(world, p, damage, fireSeconds = if (fire) 3f else 0f, kind = if (fire) BossDamage.HELLFIRE else BossDamage.CRUSH)) boss.knock(p, c, 0.9, 0.45)
                 }
             }
             return true
@@ -203,7 +215,7 @@ object PitHazards {
                     if (i % 2 == 0) sound(world, p, net.minecraft.sound.SoundEvents.BLOCK_POINTED_DRIPSTONE_LAND, 1.2f, 0.6f)
                     if (boss != null) for (pl in PitFight.targets(world)) {
                         if (pl.uuid in hit) continue
-                        if (pl.squaredDistanceTo(p.x, pl.y, p.z) < 1.4 * 1.4 && pl.y - from.y < 2.5) {
+                        if (pl.squaredDistanceTo(p.x, pl.y, p.z) < 1.4 * 1.4 && pl.y - from.y in -1.8..2.5) {
                             hit += pl.uuid
                             if (boss.hurt(world, pl, damage, bleedTicks = 60, kind = BossDamage.HELLFIRE)) { pl.addVelocity(0.0, 0.8, 0.0); pl.velocityDirty = true; pl.knockedBack = true }
                         }
@@ -258,6 +270,38 @@ object PitHazards {
     }
 
     // ------------------------------------------------------------------------------------- thrown axe
+
+    /** Phase V: a prop thrown aside, never a damaging boomerang and never caught again. */
+    fun discardAxe(owner: MinotaurEntity, instant: Boolean = false) {
+        owner.axeOut = true
+        val world = owner.entityWorld as ServerWorld
+        val f = owner.forward()
+        val side = Vec3d(f.z, 0.0, -f.x)
+        val from = owner.entityPos.add(side).add(0.0, 2.8, 0.0)
+        val to = PitArena.clampToFloor(owner.entityPos.add(side.multiply(12.0)).subtract(f.multiply(3.0)), 3.0).add(0.0, 0.35, 0.0)
+        val rest = Quaternionf().rotateX((PI / 2).toFloat()).rotateZ(0.6f)
+        val display = FxDisplays.spawn(world, if (instant) to else from, Items.PAPER, "minotaur_axe", if (instant) rest else Quaternionf(), 0.95f, teleportTicks = 1)
+        display?.let { FxDisplays.cullBox(it, 4f, 4f) }
+        add(DiscardedAxe(owner.uuid, display, from, to).also { if (instant) it.age = 21 })
+    }
+
+    private class DiscardedAxe(owner: UUID, val display: DisplayEntity.ItemDisplayEntity?, val from: Vec3d, val to: Vec3d) : Hazard(owner) {
+        override fun tick(world: ServerWorld, boss: PitBoss?): Boolean {
+            if (boss == null) return false
+            if (age <= 21) {
+                val t = (age / 20.0).coerceAtMost(1.0)
+                val pos = from.lerp(to, t).add(0.0, sin(t * PI) * 3.5, 0.0)
+                val rot = if (age < 20) Quaternionf().rotateZ(age * 0.6f) else Quaternionf().rotateX((PI / 2).toFloat()).rotateZ(0.6f)
+                display?.let { FxDisplays.update(it, pos, rot, 0.95f, 1) }
+                if (age == 20) {
+                    sound(world, to, BossSounds.AXE_IMPACT, 3f, 0.65f)
+                    world.spawnParticles(ParticleTypes.CLOUD, to.x, to.y, to.z, 20, 0.7, 0.1, 0.7, 0.1)
+                }
+            }
+            return true
+        }
+        override fun remove() { FxDisplays.removeEntity(display) }
+    }
 
     /** The Minotaur's axe as a spinning boomerang: flies out to [target], comes back, [onCaught] when it returns. */
     fun throwAxe(owner: MinotaurEntity, from: Vec3d, target: Vec3d, damage: Float) {
@@ -491,13 +535,15 @@ object PitHazards {
 
     // ------------------------------------------------------------------------------------- labyrinth walls
 
-    fun raiseWalls(world: ServerWorld, owner: PitBoss, life: Int) {
-        val avoid = PitFight.targets(world).map { it.entityPos } + owner.entityPos
-        val cols = PitArena.labyrinthColumns(world, world.random.nextInt(), avoid)
-        if (cols.isEmpty()) return
-        // split into chunks of neighbouring columns so they rise in waves
-        walls += PitArena.RisingWall(cols, 3, 0, life)
-        sound(world, PitArena.mid(), BossSounds.WALL_RISE, 3.0f, 0.8f)
+    /** The labyrinth of stage 4: [waves] rise one after another from the middle outwards ([instant]: all at once). */
+    fun raiseMaze(world: ServerWorld, waves: List<List<BlockPos>>, glow: Set<BlockPos>, height: Int, life: Int, instant: Boolean) {
+        for ((k, cols) in waves.withIndex()) {
+            val set = cols.toHashSet()
+            val w = PitArena.RisingWall(cols, height, 0, life, if (instant) 0 else 4 + k * 7, glow.filterTo(HashSet()) { it in set })
+            if (instant) while (!PitArena.riseStep(world, w)) { /* up at once */ }
+            walls += w
+        }
+        sound(world, PitArena.mid(), BossSounds.WALL_RISE, 3.5f, 0.7f)
     }
 
     fun wallsUp(): Boolean = walls.isNotEmpty()
@@ -506,6 +552,14 @@ object PitHazards {
         val it = walls.iterator()
         while (it.hasNext()) {
             val w = it.next()
+            if (w.delay > 0) {
+                if (--w.delay == 0 && w.columns.isNotEmpty()) {
+                    val c = w.columns[w.columns.size / 2]
+                    sound(world, Vec3d.ofCenter(c), BossSounds.WALL_RISE, 2.5f, 0.6f + world.random.nextFloat() * 0.3f)
+                    BloodFx.shake(world, Vec3d.ofCenter(c), 30.0, 0.6f, 8)
+                }
+                continue
+            }
             w.life--
             if (w.life > 0) {
                 if (w.level < w.height && w.life % 3 == 0) {

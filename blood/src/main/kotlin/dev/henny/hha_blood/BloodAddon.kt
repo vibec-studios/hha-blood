@@ -143,6 +143,24 @@ class BloodAddon : HhaAddon {
      * abilities only match while their set is worn, so they never collide with these.
      */
     private fun registerAbilities(c: HhaAddonContext) {
+        // Slaughter Pit stage 4: everyone in the labyrinth can sink into the blood with Ability 2 (H), with or
+        // without the Blood armour. Registered first so it wins over Blood Trail; HHA's own Ability-2 abilities
+        // (registered before any addon) are redirected through the cast event while the labyrinth runs.
+        c.registerAbility(
+            SimpleAbility(
+                dev.henny.hha_blood.boss.PitLabyrinth.ABILITY_ID, AbilitySlot.ABILITY_2,
+                { p -> dev.henny.hha_blood.boss.PitLabyrinth.canUse(p) },
+                dev.henny.hha_blood.boss.PitLabyrinth::cast,
+            ),
+        )
+        dev.henny.hha.api.event.HhaEvents.ABILITY_CAST.register(object : dev.henny.hha.api.event.HhaEvents.AbilityCast {
+            override fun allowCast(player: net.minecraft.server.network.ServerPlayerEntity, ability: dev.henny.hha.api.ability.Ability): Boolean {
+                if (ability.slot != AbilitySlot.ABILITY_2 || ability.id == dev.henny.hha_blood.boss.PitLabyrinth.ABILITY_ID) return true
+                if (!dev.henny.hha_blood.boss.PitLabyrinth.canUse(player)) return true
+                dev.henny.hha_blood.boss.PitLabyrinth.cast(player)
+                return false
+            }
+        })
         c.registerAbility(
             SimpleAbility(
                 c.id("nihil"), AbilitySlot.ABILITY_1,

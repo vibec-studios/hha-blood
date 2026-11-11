@@ -241,6 +241,26 @@ object CinePlayer {
     private fun visibleChars(l: Line): Int = (l.age * CHARS_PER_TICK).toInt().coerceAtMost(l.text.string.length)
 
     /**
+     * How far [speaker]'s mouth is open (0..1) while one of his lines types out: vowels open it wide, other letters
+     * half, spaces and punctuation close it (the boss renderers animate the jaw with it).
+     */
+    @JvmStatic
+    fun mouth(speaker: Int, time: Float): Float {
+        val l = line ?: return 0f
+        if (l.speaker != speaker) return 0f
+        val full = l.text.string
+        val n = visibleChars(l)
+        if (n <= 0 || n >= full.length) return 0f
+        val c = full[n - 1].lowercaseChar()
+        val open = when {
+            c in "aeiouäöüy" -> 1f
+            c.isLetter() -> 0.45f
+            else -> 0.05f
+        }
+        return open * (0.8f + 0.2f * sin(time * 1.7f))
+    }
+
+    /**
      * Syllable sounds while a line types out (letters only, never on spaces): the Minotaur growls, Hermes uses
      * HHA's own messenger voice (only if HHA ships that sound).
      */
@@ -293,10 +313,35 @@ object CinePlayer {
                 look = lookEntity?.getLerpedPos(tickDelta)?.add(0.0, s.lookOffset, 0.0) ?: s.center.add(0.0, s.lookOffset, 0.0)
             }
         }
-        val d = look.subtract(pos)
-        val yaw = (Math.toDegrees(atan2(d.z, d.x)) - 90.0).toFloat()
-        val pitch = (-Math.toDegrees(atan2(d.y, sqrt(d.x * d.x + d.z * d.z)))).toFloat()
+        // a camera operator follows a moving boss with a little delay instead of being nailed to it
+        val aim = if (lookEntity != null) follow(look, s) else { followShot = null; look }
+        val d = aim.subtract(pos)
+        // and holds it by hand: a faint, slow drift (scaled with the "Distortion Effects" option)
+        val drift = MinecraftClient.getInstance().options.distortionEffectScale.value.toFloat()
+        val sec = System.nanoTime() / 1.0e9
+        val yaw = (Math.toDegrees(atan2(d.z, d.x)) - 90.0).toFloat() + (sin(sec * 0.53) * 0.22 + sin(sec * 1.31 + 1.0) * 0.08).toFloat() * drift
+        val pitch = (-Math.toDegrees(atan2(d.y, sqrt(d.x * d.x + d.z * d.z)))).toFloat() + (sin(sec * 0.41 + 2.0) * 0.16 + sin(sec * 1.07) * 0.06).toFloat() * drift
         return CameraPose(pos, yaw, pitch)
+    }
+
+    private var followShot: Shot? = null
+    private var followLook = Vec3d.ZERO
+    private var followNanos = 0L
+
+    /** Smoothed look target (~0.1 s): starts exactly on the target when a new shot begins. */
+    private fun follow(target: Vec3d, s: Shot): Vec3d {
+        val now = System.nanoTime()
+        if (followShot !== s) {
+            followShot = s
+            followLook = target
+            followNanos = now
+            return target
+        }
+        val dt = ((now - followNanos) / 1.0e9).coerceIn(0.0, 0.1)
+        followNanos = now
+        val k = 1.0 - kotlin.math.exp(-dt / 0.1)
+        followLook = followLook.add(target.subtract(followLook).multiply(k))
+        return followLook
     }
 
     class CameraPose(@JvmField val pos: Vec3d, @JvmField val yaw: Float, @JvmField val pitch: Float)

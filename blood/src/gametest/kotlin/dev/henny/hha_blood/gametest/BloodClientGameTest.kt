@@ -38,7 +38,9 @@ class BloodClientGameTest : FabricClientGameTest {
                 w = world
                 world.clientWorld.waitForChunksRender()
                 if (mode.contains("cerberus")) cerberusShowcase(context)
-                if (mode == "cerberus") return@use
+                if (mode.contains("minotaur")) minotaurShowcase(context)
+                if (mode.contains("walk")) walkShowcase(context)
+                if (mode != "all" && !mode.contains("arena") && !mode.contains("fight") && !mode.contains("finale")) return@use
                 c = world.server.computeOnServer<BlockPos, RuntimeException> { HollowsRegion.center() ?: BlockPos.ORIGIN }
                 check(c != BlockPos.ORIGIN) { "no Slaughter Pit centre" }
                 println("[gametest] Slaughter Pit at $c")
@@ -53,6 +55,7 @@ class BloodClientGameTest : FabricClientGameTest {
                 context.waitTicks(40)
                 if (mode == "all" || mode.contains("arena")) arena(context)
                 if (mode == "all" || mode.contains("fight")) fight(context)
+                if (mode.contains("finale")) finaleShots(context)
             }
     }
 
@@ -163,6 +166,161 @@ class BloodClientGameTest : FabricClientGameTest {
         cmd("time set noon")
         context.runOnClient<RuntimeException> { it.options.hudHidden = false }
         println("[gametest] cerberus showcase done")
+    }
+
+    /**
+     * Animation showcase of the Crimson Minotaur (mode "minotaur"): one Minotaur on a platform high above the overworld
+     * plays every action (`/hhablood boss mpose`), each caught at its key frames (ticks after the start).
+     */
+    private fun minotaurShowcase(context: ClientGameTestContext) {
+        val ow = "execute in minecraft:overworld run "
+        val y = 200
+        cmd("gamemode spectator @p")
+        cmd("${ow}tp @p 80.5 ${y + 6} 12.5 180 20")
+        context.waitTicks(40)
+        w.clientWorld.waitForChunksRender()
+        cmd("time set noon")
+        cmd("weather clear")
+        cmd("${ow}fill 62 ${y - 1} -14 124 ${y - 1} 30 minecraft:polished_blackstone")
+        cmd("${ow}fill 62 ${y - 2} -14 124 ${y - 2} 30 minecraft:blackstone")
+        cmd("${ow}summon hha_blood:crimson_minotaur 80.5 $y 0.5 {NoAI:1b,Rotation:[0f,0f]}")
+        context.waitTicks(10)
+        context.runOnClient<RuntimeException> { it.options.hudHidden = true }
+        fun mpose(a: String, fury: Int = 0, burning: Boolean = false) =
+            cmd("execute in minecraft:overworld positioned 80.5 $y 0.5 run hhablood boss mpose $a $fury $burning")
+        fun cam(px: Double, py: Double, pz: Double, tx: Double, ty: Double, tz: Double) {
+            val vx = tx - px; val vy = ty - py; val vz = tz - pz
+            val yaw = Math.toDegrees(Math.atan2(-vx, vz)).toFloat()
+            val pitch = Math.toDegrees(-Math.atan2(vy, Math.sqrt(vx * vx + vz * vz))).toFloat()
+            cmd("${ow}tp @p $px $py $pz $yaw $pitch")
+        }
+        mpose("idle")
+        // three quarter view from the front left (his right hand with the axe faces the camera), then a side view
+        cam(87.0, y + 3.2, 8.5, 80.5, y + 2.0, 0.5)
+        context.waitTicks(30)
+        shot(context, "mino_idle_34")
+        cam(90.5, y + 2.4, 0.5, 80.5, y + 2.0, 0.5)
+        context.waitTicks(10)
+        shot(context, "mino_idle_side")
+        cam(87.0, y + 3.2, 8.5, 80.5, y + 2.0, 0.5)
+        context.waitTicks(5)
+        val anims = listOf(
+            "cleave" to listOf(8, 15, 18, 20, 26), "sweep" to listOf(12, 15, 17, 20), "gore" to listOf(8, 10, 12), "charge_windup" to listOf(4, 10, 24),
+            "stunned" to listOf(3, 30), "stuck" to listOf(6, 13), "whirl" to listOf(10, 30, 70), "throw" to listOf(12, 17, 30, 60), "catch" to listOf(2),
+            "leap" to listOf(13, 20, 28), "grab" to listOf(8, 12, 22, 38, 40), "quake" to listOf(18, 21), "howl_roar" to listOf(20, 25), "snort" to listOf(11, 20),
+            "roar" to listOf(5, 14), "kneel" to listOf(13, 24), "death" to listOf(12, 30, 37, 60), "laugh" to listOf(10), "point" to listOf(4, 12),
+            "absorb" to listOf(40), "jump_down" to listOf(6, 20, 34, 40), "stand" to listOf(10, 22, 34), "throne" to listOf(5), "charge" to listOf(5),
+        )
+        for ((a, at) in anims) {
+            mpose(a)
+            var now = 0
+            for (k in at) {
+                context.waitTicks(k - now)
+                now = k
+                shot(context, "mino_${a}_$k")
+            }
+            // back to idle before the next one (the cross-fade starts from wherever this one ended)
+            mpose("idle")
+            context.waitTicks(8)
+        }
+        // the kneeling and dead poses from the side: knee and body on the platform, not in it
+        mpose("kneel")
+        cam(90.5, y + 1.2, 0.5, 80.5, y + 1.0, 0.5)
+        context.waitTicks(30)
+        shot(context, "mino_kneel_side")
+        mpose("death")
+        context.waitTicks(60)
+        shot(context, "mino_death_side")
+        mpose("idle", 10, true)
+        cam(87.0, y + 3.2, 8.5, 80.5, y + 2.0, 0.5)
+        context.waitTicks(20)
+        shot(context, "mino_idle_burning")
+        // stage 4 sniffing and the stage 5 berserker attacks (fury 6 + hellfire + berserk, as at the start of stage 5)
+        val berserk = listOf("sniff" to listOf(4, 11, 20), "stomp" to listOf(4, 6, 12, 14, 18, 24, 28), "tackle" to listOf(4, 7, 12),
+            "slam" to listOf(7, 12, 22), "rage" to listOf(6, 10, 20), "split" to listOf(7, 14, 20, 35),
+            "punch" to listOf(10, 14, 24, 28, 41, 46, 60), "uppercut" to listOf(12, 18, 30))
+        for ((a, at) in berserk) {
+            mpose(a, 6, a != "sniff")
+            var now = 0
+            for (k in at) {
+                context.waitTicks(k - now)
+                now = k
+                shot(context, "mino_b_${a}_$k")
+            }
+            mpose("idle", 6, true)
+            context.waitTicks(8)
+        }
+        context.runOnClient<RuntimeException> { it.options.hudHidden = false }
+        println("[gametest] minotaur showcase done")
+    }
+
+    /**
+     * Gait check (mode "walk"): the bosses walk past a side camera (`/hhablood boss walk`), a frame every 2 ticks, so
+     * the planted feet, the knee lift and the bob can be seen; then the Minotaur's charge run and the hound's gallop.
+     */
+    private fun walkShowcase(context: ClientGameTestContext) {
+        val ow = "execute in minecraft:overworld run "
+        val y = 200
+        cmd("gamemode spectator @p")
+        cmd("${ow}tp @p 100.5 ${y + 6} 12.5 180 20")
+        context.waitTicks(30)
+        w.clientWorld.waitForChunksRender()
+        cmd("time set noon")
+        cmd("${ow}fill 62 ${y - 1} -14 124 ${y - 1} 30 minecraft:polished_blackstone")
+        cmd("${ow}fill 62 ${y - 2} -14 124 ${y - 2} 30 minecraft:blackstone")
+        // markers every 2 blocks: feet that slide show against them
+        for (z in -10..20 step 2) cmd("${ow}setblock 99 ${y - 1} $z minecraft:red_concrete")
+        cmd("${ow}summon hha_blood:crimson_minotaur 99.5 $y -8.5 {NoAI:1b,Rotation:[0f,0f]}")
+        context.waitTicks(10)
+        context.runOnClient<RuntimeException> { it.options.hudHidden = true }
+        fun cam(px: Double, py: Double, pz: Double, tx: Double, ty: Double, tz: Double) {
+            val vx = tx - px; val vy = ty - py; val vz = tz - pz
+            val yaw = Math.toDegrees(Math.atan2(-vx, vz)).toFloat()
+            val pitch = Math.toDegrees(-Math.atan2(vy, Math.sqrt(vx * vx + vz * vz))).toFloat()
+            cmd("${ow}tp @p $px $py $pz $yaw $pitch")
+        }
+        val at = "execute in minecraft:overworld positioned 99.5 $y -8.5 run hhablood boss "
+        cmd("${at}mpose idle")
+        cmd("${at}walk 0.17 16")
+        cam(109.5, y + 2.0, -2.0, 99.5, y + 1.6, -2.0)
+        context.waitTicks(30)
+        for (i in 0 until 12) { shot(context, "walk_mino_$i"); context.waitTicks(2) }
+        // the run of the charge
+        cmd("${at}walk 0")
+        context.waitTicks(4)
+        cmd("${at}mpose charge")
+        cmd("${at}walk 1.1 26")
+        cam(112.5, y + 2.0, 6.0, 99.5, y + 1.6, 6.0)
+        context.waitTicks(3)
+        for (i in 0 until 10) { shot(context, "walk_mino_run_$i"); context.waitTicks(1) }
+        cmd("${at}walk 0")
+        cmd("${at}mpose idle")
+        // bosses ignore /kill: park the Minotaur far away so the next walk picks the hound
+        cmd("${ow}tp @e[type=hha_blood:crimson_minotaur,x=99,y=$y,z=-8,distance=..40] 400 $y 400")
+        // the hound: trot, then gallop
+        cmd("${ow}summon hha_blood:blood_cerberus 99.5 $y -8.5 {NoAI:1b,Rotation:[0f,0f]}")
+        context.waitTicks(10)
+        cmd("${at}pose idle")
+        cmd("${at}walk 0.22 18")
+        cam(110.5, y + 2.0, -1.0, 99.5, y + 1.4, -1.0)
+        context.waitTicks(30)
+        for (i in 0 until 12) { shot(context, "walk_cer_$i"); context.waitTicks(2) }
+        cmd("${at}walk 0")
+        context.waitTicks(4)
+        cmd("${at}walk 0.9 26")
+        cam(113.5, y + 2.0, 6.0, 99.5, y + 1.4, 6.0)
+        context.waitTicks(3)
+        for (i in 0 until 10) { shot(context, "walk_cer_gallop_$i"); context.waitTicks(1) }
+        cmd("${at}walk 0")
+        // turning on the spot (the head leads, small steps)
+        cmd("${at}walk 0.05 1")
+        context.waitTicks(3)
+        cam(105.5, y + 3.0, 4.0, 99.5, y + 1.4, -8.0)
+        for (i in 0 until 6) { context.waitTicks(3); shot(context, "walk_cer_turn_$i") }
+        cmd("${at}walk 0")
+        cmd("${ow}tp @e[type=hha_blood:blood_cerberus,x=99,y=$y,z=-8,distance=..40] 420 $y 400")
+        context.runOnClient<RuntimeException> { it.options.hudHidden = false }
+        println("[gametest] walk showcase done")
     }
 
     private fun arena(context: ClientGameTestContext) {
@@ -290,8 +448,28 @@ class BloodClientGameTest : FabricClientGameTest {
         look(context, 0.5, p + 26.0, tz + 30.0, 0.5, p, tz, "landmark_above")
         look(context, 12.5, p + 1.6, tz + 6.0, 0.5, p + 8.0, tz - 2.0, "plaza_ribs")
         look(context, 5.5, p + 1.6, tz - 5.5, 0.5, -1.0, tz, "stair_from_top")
-        look(context, 5.5, 1.6, tz - 5.0, 0.0, p, tz + 2.0, "stair_from_floor")
-        look(context, 0.5, 1.6, tz - 4.0, 0.5, 4.0, 47.0, "vestibule_skull")
+        val base = dev.henny.hha_blood.hollows.PitApproach.TOWER_BASE.toDouble()
+        look(context, 5.5, base + 1.6, tz - 5.0, 0.0, p, tz + 2.0, "stair_from_floor")
+        // round "Weg laenger": walk the processional hall from the tower bottom down to the pit
+        val path = listOf(
+            doubleArrayOf(0.5, base + 0.1, tz - 2.5, 0.5, base + 1.8, 104.0) to "path_01_tower_door",
+            doubleArrayOf(0.5, base + 0.1, 112.5, 0.5, base + 1.0, 100.0) to "path_02_chains_hall",
+            doubleArrayOf(1.6, base + 0.1, 107.0, -3.0, base + 2.0, 105.0) to "path_03_chained_skeleton",
+            doubleArrayOf(0.5, base + 0.1, 103.5, 0.5, 8.5, 90.0) to "path_04_steps_down",
+            doubleArrayOf(0.5, 8.1, 98.5, 0.5, 10.5, 86.0) to "path_05_hall_of_horns",
+            doubleArrayOf(-2.5, 8.1, 96.5, 4.0, 15.0, 94.0) to "path_06_horned_pillar",
+            doubleArrayOf(0.5, 8.1, 89.0, 0.5, 9.0, 76.0) to "path_07_bone_bridge",
+            doubleArrayOf(-1.0, 8.1, 84.0, -6.0, -2.0, 79.0) to "path_08_chasm_down",
+            doubleArrayOf(-5.5, 0.5, 86.0, 1.0, 9.0, 79.0) to "path_09_chasm_from_lake",
+            doubleArrayOf(0.5, 8.1, 75.0, 0.5, 5.0, 50.0) to "path_10_great_stair_top",
+            doubleArrayOf(0.5, 4.1, 69.5, 0.5, 6.0, 47.0) to "path_11_great_stair",
+            doubleArrayOf(0.5, 0.1, 63.5, 0.5, 7.0, 47.0) to "path_12_gate_hall",
+            doubleArrayOf(0.5, 0.1, 54.0, 0.5, 8.5, 47.0) to "path_13_skull_face",
+            doubleArrayOf(14.5, 0.1, 61.0, -4.0, 2.0, 60.0) to "path_14_ring_junction",
+            doubleArrayOf(0.5, 0.1, 49.0, 0.5, 7.0, 76.0) to "path_15_gate_hall_back",
+            doubleArrayOf(0.5, 0.1, 28.0, 0.5, 2.0, 64.0) to "path_16_from_dome_back",
+        )
+        for ((v, name) in path) look(context, v[0], v[1], v[2], v[3], v[4], v[5], name)
         look(context, 0.5, 0.0, 58.5, 0.5, 1.6, 47.0, "ko_spot")
         for ((deg, name) in listOf(200.0 to "ring_west", 330.0 to "ring_north_east", 135.0 to "ring_south_west")) {
             val a = Math.toRadians(deg)
@@ -376,6 +554,226 @@ class BloodClientGameTest : FabricClientGameTest {
         context.runOnClient<RuntimeException> { it.options.hudHidden = false }
     }
 
+    /** Stage 4: HHA's Ability 2 key sinks the player into the blood (HUD line), then the maze from above. */
+    private fun labyrinthShots(context: ClientGameTestContext) {
+        println("[gametest] " + w.server.computeOnServer<String, RuntimeException> { srv ->
+            dev.henny.hha_blood.boss.BossDebug.verifyLabyrinth(srv.getWorld(World.NETHER)!!)
+        })
+        shot(context, "stage4_corridor")
+        context.getInput().pressKey { o -> o.allKeys.first { it.id == "key.hha.ability_2" } }
+        context.waitTicks(30)
+        val hidden = w.server.computeOnServer<Boolean, RuntimeException> { srv ->
+            dev.henny.hha_blood.boss.PitLabyrinth.isHidden(srv.playerManager.playerList.first())
+        }
+        println("[gametest] labyrinth: hidden after the Ability 2 key = $hidden")
+        check(hidden) { "Ability 2 did not hide the player in the labyrinth" }
+        shot(context, "stage4_hidden")
+        context.getInput().pressKey { it.togglePerspectiveKey }
+        context.waitTicks(10)
+        shot(context, "stage4_hidden_f5")
+        context.getInput().pressKey { it.togglePerspectiveKey }
+        context.getInput().pressKey { it.togglePerspectiveKey }
+        tp(0.5, 32.0, 0.5, 0f, 90f)
+        context.waitTicks(20)
+        shot(context, "stage4_maze_top")
+        tp(18.0, 9.0, 18.0, 135f, 30f)
+        context.waitTicks(20)
+        shot(context, "stage4_maze_side")
+    }
+
+    private fun finaleShots(context: ClientGameTestContext) {
+        cmd("gamemode creative @p")
+        tp(0.5, 0.0, 20.5, 180f, 0f)
+        var n = 0
+        while (!active() && n++ < 40) context.waitTicks(10)
+        check(active())
+        context.waitTicks(10)
+        cmd("hhablood boss skip")
+        context.waitTicks(10)
+        for (s in 1..3) {
+            check(stage() == s)
+            if (s == 3) axeHeightChecks(context)
+            cmd("hhablood boss skip")
+            context.waitTicks(10)
+            cmd("hhablood boss skip")
+            context.waitTicks(10)
+        }
+        check(stage() == PitFight.LABYRINTH)
+        context.waitTicks(30)
+        w.server.runOnServer<RuntimeException> { srv ->
+            // The transition must work even when the last hit lands beside the outer arena wall.
+            val world = srv.getWorld(World.NETHER)!!
+            PitFight.minotaur(world)!!.setPosition(c.x + 36.5, HeartVaultPiece.FLOOR.toDouble(), c.z + 0.5)
+        }
+        cmd("hhablood boss skip")
+        context.waitTicks(2)
+        n = 0
+        while (scene() && n < 120) {
+            context.waitTicks(10)
+            shot(context, "finale_transition_${n++}")
+        }
+        check(!scene() && stage() == PitFight.LAST_BULL)
+        finalBrawlChecks(context)
+        brawlVariety(context)
+        balanceAndWrestling(context)
+        cmd("hhablood boss reset")
+        println("[gametest] full unarmed transition and final combat passed")
+    }
+
+    private fun axeHeightChecks(context: ClientGameTestContext) {
+        cmd("gamemode survival @p")
+        for (dy in listOf(30.0, 5.5, 0.0)) {
+            w.server.runOnServer<RuntimeException> { srv ->
+                val world = srv.getWorld(World.NETHER)!!
+                val m = PitFight.minotaur(world)!!
+                val p = srv.playerManager.playerList.first()
+                dev.henny.hha_blood.boss.PitHazards.clear(world)
+                dev.henny.hha_blood.logic.Bleed.clear(p.uuid)
+                p.clearStatusEffects(); p.getAttributeInstance(net.minecraft.entity.attribute.EntityAttributes.MAX_HEALTH)!!.baseValue = 200.0; p.health = 200f; p.absorptionAmount = 0f; p.timeUntilRegen = 0
+                p.setNoGravity(true); p.velocity = net.minecraft.util.math.Vec3d.ZERO
+                m.resetAction(); m.fury = 0; m.burning = false; m.berserk = false; m.axeOut = false; m.scripted = false
+                m.setPosition(c.x + 0.5, HeartVaultPiece.FLOOR.toDouble(), c.z + 0.5)
+                val origin = m.entityPos
+                val f = net.minecraft.util.math.Vec3d(1.0, 0.0, 0.0)
+                check(!m.inCone(origin.add(0.0, 30.0, 0.0), origin, f, 5.4, 32.0))
+                check(!m.inCone(origin.add(3.0, -30.0, 0.0), origin, f, 5.4, 32.0))
+                check(m.inCone(origin.add(3.0, 0.0, 0.0), origin, f, 5.4, 32.0))
+                p.teleport(world, c.x + 3.5, HeartVaultPiece.FLOOR + dy, c.z + 0.5, emptySet(), 90f, 0f, false)
+                m.act(dev.henny.hha_blood.boss.MinotaurEntity.CLEAVE)
+            }
+            context.waitTicks(22)
+            val loss = w.server.computeOnServer<Float, RuntimeException> { srv ->
+                val p = srv.playerManager.playerList.first()
+                200f - p.health
+            }
+            if (dy > 0) check(loss == 0f) { "Axe hit $dy blocks overhead: $loss" }
+            else check(loss > 0f) { "Axe no longer hits at ground level" }
+            println("[gametest] real axe strike at height +$dy: damage=$loss")
+        }
+        w.server.runOnServer<RuntimeException> { srv ->
+            val p = srv.playerManager.playerList.first()
+            p.setNoGravity(false); p.velocity = net.minecraft.util.math.Vec3d.ZERO; p.fallDistance = 0.0
+            dev.henny.hha_blood.logic.Bleed.clear(p.uuid)
+            p.clearStatusEffects(); p.getAttributeInstance(net.minecraft.entity.attribute.EntityAttributes.MAX_HEALTH)!!.baseValue = 20.0; p.absorptionAmount = 0f; p.health = 20f
+        }
+        cmd("gamemode creative @p")
+    }
+
+    private fun brawlVariety(context: ClientGameTestContext) {
+        val seen = HashSet<Int>()
+        for (i in 0 until 60) {
+            val action = w.server.computeOnServer<Int, RuntimeException> { srv ->
+                val world = srv.getWorld(World.NETHER)!!
+                val m = PitFight.minotaur(world)!!
+                val p = srv.playerManager.playerList.first()
+                if (m.action != 23) {
+                    val near = m.entityPos.add(m.forward().multiply(3.3))
+                    p.teleport(world, near.x, HeartVaultPiece.FLOOR.toDouble(), near.z, emptySet(), m.yaw + 180f, 0f, false)
+                }
+                check(m.axeOut && m.berserk)
+                m.action
+            }
+            if (action in setOf(23, 27, 28, 29, 30, 31, 33, 34)) seen += action
+            context.waitTicks(10)
+            if (seen.size >= 5) break
+        }
+        check(seen.size >= 5) { "Phase V lacks attack variety: $seen" }
+        println("[gametest] phase V uses ${seen.size} different attacks in <=30 seconds: $seen")
+    }
+
+    private fun balanceAndWrestling(context: ClientGameTestContext) {
+        cmd("gamemode survival @p")
+        val balance = w.server.computeOnServer<String, RuntimeException> { srv ->
+            val world = srv.getWorld(World.NETHER)!!
+            val m = PitFight.minotaur(world)!!
+            val p = srv.playerManager.playerList.first()
+            m.resetAction(); m.scripted = true
+            p.clearStatusEffects(); p.health = 20f; p.absorptionAmount = 0f; p.timeUntilRegen = 0
+            val expected = PitFight.scaledDamage(10f) * dev.henny.hha_blood.boss.PitBoss.BALANCE * m.damageBonus()
+            check(m.hurt(world, p, 10f, kind = dev.henny.hha_blood.boss.BossDamage.CRUSH))
+            val lost = 20f - p.health
+            check(kotlin.math.abs(lost - expected) < 0.05f) { "Unexpected damage $lost vs $expected" }
+            val hit = PitFight.onBossDamaged(m, world.damageSources.playerAttack(p), 10f)
+            check(kotlin.math.abs(hit - 5f) < 0.01f) { "Incoming damage $hit: health boost failed" }
+            "damage=$lost (old=${expected / 0.75f}), incoming 10 -> $hit; effective health=${m.maxHealth / m.toughness()}"
+        }
+        println("[gametest] balance: $balance")
+        cmd("gamemode creative @p")
+        for ((action, frames) in listOf(33 to listOf(28, 48, 58, 62, 80), 27 to listOf(18, 40, 62, 76, 96),
+            31 to listOf(26, 42, 46, 62), 23 to listOf(14, 24, 36, 56, 70, 90))) {
+            w.server.runOnServer<RuntimeException> { srv ->
+                val world = srv.getWorld(World.NETHER)!!
+                val m = PitFight.minotaur(world)!!
+                m.resetAction(); m.scripted = false
+                m.setPosition(c.x + 0.5, HeartVaultPiece.FLOOR.toDouble(), c.z + 0.5)
+                m.act(action)
+            }
+            if (action == 23) tp(3.0, 0.0, 0.5, 90f, 0f) else tp(9.5, 3.0, 8.5, 135f, 12f)
+            var at = 0
+            for (frame in frames) {
+                context.waitTicks(frame - at); at = frame
+                shot(context, "wrestling_${action}_$frame")
+                if (action == 23 && frame == 36) w.server.runOnServer<RuntimeException> { srv ->
+                    check(srv.playerManager.playerList.first().y > HeartVaultPiece.FLOOR + 1.0) { "Running grab never lifted the victim" }
+                }
+                if (action == 23 && frame == 56) w.server.runOnServer<RuntimeException> { srv ->
+                    check(PitFight.minotaur(srv.getWorld(World.NETHER)!!)!!.y > HeartVaultPiece.FLOOR + 0.5) { "Wrestling slam never took off" }
+                }
+            }
+        }
+    }
+
+    private fun finalBrawlChecks(context: ClientGameTestContext) {
+        w.server.runOnServer<RuntimeException> { srv ->
+            val world = srv.getWorld(World.NETHER)!!
+            val m = checkNotNull(PitFight.minotaur(world))
+            val p = srv.playerManager.playerList.first()
+            check(m.berserk && m.axeOut) { "Phase V did not discard the axe" }
+            check(!dev.henny.hha_blood.boss.PitHazards.wallsUp()) { "Phase V maze is still standing" }
+            check(dev.henny.hha_blood.boss.PitLabyrinth.canUse(p)) { "Blood Trail was removed in Phase V" }
+        }
+        context.getInput().pressKey { o -> o.allKeys.first { it.id == "key.hha.ability_2" } }
+        context.waitTicks(10)
+        w.server.runOnServer<RuntimeException> { srv ->
+            val world = srv.getWorld(World.NETHER)!!
+            val p = srv.playerManager.playerList.first()
+            check(dev.henny.hha_blood.boss.PitLabyrinth.isHidden(p)) { "Ability 2 failed in Phase V" }
+            val m = checkNotNull(PitFight.minotaur(world))
+            val hp = m.health
+            val behind = m.entityPos.subtract(m.forward().multiply(2.8))
+            p.teleport(world, behind.x, behind.y, behind.z, emptySet(), m.yaw, 0f, false)
+            m.timeUntilRegen = 0
+            m.damage(world, world.damageSources.playerAttack(p), 10f)
+            check(!dev.henny.hha_blood.boss.PitLabyrinth.isHidden(p) && m.isStunned() && m.health < hp) {
+                "Phase V Blood Trail ambush failed"
+            }
+        }
+        shot(context, "stage5_blood_trail_ambush")
+        val seen = HashSet<Int>()
+        for (i in 0 until 40) {
+            val action = w.server.computeOnServer<Int, RuntimeException> { srv ->
+                val world = srv.getWorld(World.NETHER)!!
+                val m = checkNotNull(PitFight.minotaur(world))
+                val p = srv.playerManager.playerList.first()
+                check(m.axeOut && m.berserk) { "Phase V axe reappeared" }
+                check(m.action in setOf(2, 7, 23, 27, 28, 29, 30, 31, 33, 34)) { "Armed action ${m.action}" }
+                if (m.action != dev.henny.hha_blood.boss.MinotaurEntity.GRAB) {
+                    val near = m.entityPos.add(m.forward().multiply(3.3))
+                    p.teleport(world, near.x, HeartVaultPiece.FLOOR.toDouble(), near.z, emptySet(), m.yaw + 180f, 0f, false)
+                }
+                m.action
+            }
+            seen += action
+            context.waitTicks(10)
+            if (i % 3 == 0) shot(context, "stage5_unarmed_$i")
+            if (seen.contains(dev.henny.hha_blood.boss.MinotaurEntity.PUNCH) && seen.contains(dev.henny.hha_blood.boss.MinotaurEntity.UPPERCUT)) break
+        }
+        check(seen.any { it == dev.henny.hha_blood.boss.MinotaurEntity.PUNCH || it == dev.henny.hha_blood.boss.MinotaurEntity.UPPERCUT }) {
+            "Minotaur never used its fists: $seen"
+        }
+        println("[gametest] phase V: axe discarded, real Ability 2 key and ambush passed")
+    }
+
     private fun fight(context: ClientGameTestContext) {
         cmd("gamemode creative @p")
         tp(0.5, 0.0, 36.5, 180f, 0f)
@@ -392,6 +790,9 @@ class BloodClientGameTest : FabricClientGameTest {
             for (k in 0 until 6) {
                 // stage 1: break one head halfway (broken-head look + head bars)
                 if (s == 1 && k == 3) { cmd("hhablood boss breakhead"); context.waitTicks(10); shot(context, "stage1_headbroken") }
+                // stage 4: sink into the blood with HHA's Ability 2 key, then look at the maze from above
+                if (s == 4 && k == 1) labyrinthShots(context)
+                if (s == 5 && k == 0) finalBrawlChecks(context)
                 context.waitTicks(50); shot(context, "stage${s}_$k")
             }
             println("[gametest] stage $s: ${info()}")
@@ -399,8 +800,9 @@ class BloodClientGameTest : FabricClientGameTest {
             context.waitTicks(10)
             i = 0
             // the finale (Hermes' cameo) runs to the end, the other scenes are skipped with the key
-            val shots = if (s == 5) 70 else 2
-            while (scene() && i < shots) { context.waitTicks(if (s == 5) 25 else 30); shot(context, "scene${s}_${i++}") }
+            // scenes 1 and 2 (hound rises / falls) and 3 and 4 (maze, berserker) are filmed longer to check the motion
+            val shots = when (s) { 5 -> 70; 4 -> 60; 1, 2 -> 26; 3 -> 14; else -> 2 }
+            while (scene() && i < shots) { context.waitTicks(when (s) { 5 -> 25; 1, 2 -> 18; else -> 22 }); shot(context, "scene${s}_${i++}") }
             if (scene()) skipByKey(context, "scene $s")
             println("[gametest] after scene $s: ${info()}")
             if (!active()) break

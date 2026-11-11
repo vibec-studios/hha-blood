@@ -241,7 +241,7 @@ object PitFight {
         m.refreshStats()
         m.scripted = true
         m.health = m.maxHealth
-        m.fury = 0; m.burning = false; m.axeOut = false
+        m.fury = 0; m.burning = false; m.axeOut = false; m.berserk = false
         m.setNoGravity(false)
     }
 
@@ -301,6 +301,14 @@ object PitFight {
             return max(0f, boss.health - floor)
         }
         var a = amount / healthScale * boss.toughness()
+        // stage 4: a melee hit out of the blood is a backstab (x3, he reels); any attack brings you out of it
+        if (boss is MinotaurEntity && stage in LABYRINTH..LAST_BULL && attacker is PlayerEntity && PitLabyrinth.isHidden(attacker)) {
+            PitLabyrinth.reveal(world, attacker)
+            if (source.source === attacker) {
+                a *= PitLabyrinth.BACKSTAB
+                boss.backstabBy = attacker
+            }
+        }
         if (boss is MinotaurEntity && boss.isStunned()) a *= 1.5f
         a = min(a, HhaConfig.num("hha_blood.boss_max_hit").toFloat())
         val allowed = min(a, boss.health - floor)
@@ -521,6 +529,7 @@ object PitFight {
             if (s.steps.hasNext()) s.steps.next() else finishScene(world, false)
         }
         PitHazards.tick(world)
+        PitLabyrinth.tick(world)
         if (ticks % 10 == 0) updateParticipants(world)
         if (ticks % 20 == 0) updateScaling(world)
         if (scene == null) {
@@ -644,12 +653,15 @@ object PitFight {
 
     // ------------------------------------------------------------------------------------- scenes
 
-    fun runScene(run: SceneRun) {
+    fun runScene(run: SceneRun, keepWalls: Boolean = false) {
         val world = scenes?.world ?: return
         scene = run
-        PitHazards.clear(world)
+        if (run.name != "last_bull") PitLabyrinth.stop(world)
+        if (keepWalls) PitHazards.clearKeepWalls() else PitHazards.clear(world)
         paralyzed.clear()
         for (b in listOfNotNull(minotaur(world), cerberus(world))) { b.scripted = true; b.navigation.stop() }
+        // a thrown axe is gone with the hazards - he has it back in his hands
+        minotaur(world)?.let { it.axeOut = it.berserk }
         Cine.start(players(world), run.skippable)
         HhaBlood.LOGGER.info("Slaughter Pit: cutscene {}", run.name)
     }
@@ -683,7 +695,7 @@ object PitFight {
             CERBERUS -> runScene(sc.cerberusRises())
             UNLEASHED -> runScene(sc.cerberusFalls())
             MINOTAUR -> runScene(sc.labyrinth())
-            LABYRINTH -> runScene(sc.lastBull())
+            LABYRINTH -> runScene(sc.lastBull(), keepWalls = true)
             LAST_BULL -> runScene(sc.finale())
         }
     }
@@ -696,6 +708,7 @@ object PitFight {
         if (s == UNLEASHED) cerberus(world)?.resetHeads(125f)
         transitionQueued = false
         tauntIn = 300
+        if (s == LABYRINTH || s == LAST_BULL) PitLabyrinth.start(world) else PitLabyrinth.stop(world)
         throwIn = 260
         Cine.music(players(world), currentMusic())
         HhaBlood.LOGGER.info("Slaughter Pit: stage {}", s)
@@ -747,6 +760,7 @@ object PitFight {
 
     private fun cleanup(world: ServerWorld) {
         scene = null
+        PitLabyrinth.stop(world)
         scenes?.cleanup()
         scenes = null
         PitHazards.clear(world)

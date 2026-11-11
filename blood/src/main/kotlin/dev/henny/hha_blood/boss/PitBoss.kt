@@ -143,8 +143,9 @@ abstract class PitBoss(type: EntityType<out PitBoss>, world: World) : HostileEnt
         return sqrt(dx * dx + dz * dz)
     }
 
-    /** Is [p] in front of the boss within [range] and [halfAngle] degrees? */
+    /** Physical melee cone, from player head height below the feet to the weapon's overhead reach. */
     fun inCone(p: Vec3d, from: Vec3d, dir: Vec3d, range: Double, halfAngle: Double): Boolean {
+        if (p.y < from.y - 2.0 || p.y > from.y + height + 1.0) return false
         val d = Vec3d(p.x - from.x, 0.0, p.z - from.z)
         val len = d.length()
         if (len > range) return false

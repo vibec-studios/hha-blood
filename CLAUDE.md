@@ -1,3 +1,35 @@
+# Blood-Boss v0.13 (10.11.2026): Höhen-Hitbox und aktiveres Finale
+
+**Status:** v0.13.0 gebaut und in der Modrinth-Instanz installiert (ersetzt 0.12.0); Prüfsummen identisch. Clienttest: Axt +30/+5,5 Blöcke = 0 Schaden, am Boden = 20,25; fünf verschiedene KI-Attacken in Phase V in 16 Sekunden. Balance, Blutspur, Hinterhalt und Sprungwurf bestanden; kompletter Serverkampf inkl. Sieg und Arena-Wiederherstellung erfolgreich. Protokolle: blood/build/verification/v0.13.0/.
+
+- Physische Nahkampf-Kegel prüfen jetzt auch die Höhe: Spielerfüße von 2 Blöcken unter dem Angriff bis 1 Block über der Bosshöhe. Der Axt-Spaltschlag trifft nicht mehr beliebig weit nach oben, und er braucht Sichtkontakt. Die Blutspalten vom Einschlag haben zusätzlich eine untere Höhengrenze.
+- Phase V: jeweils die am längsten nicht benutzte verfügbare Attacke auswählen; Schild-Packen hat weiter Vorrang. Stampfen und Bodenaufreißen stehen auch im Nahkampf zur Verfügung. Kürzere Abklingzeiten für alle waffenlosen Attacken, etwas kürzere Pausen nach Faustkombo, Aufwärtshaken und Bodenaufreißen. Ausholzeiten, Verzögerungen und eigentliche Erholungsanimationen bleiben erhalten.
+- Bestehende Balance von v0.12 (weniger Schaden/mehr Ausdauer), Blutspur und großes Labyrinth bleiben erhalten.
+- Regressionstests: echte Axtschläge gegen Spieler auf gleicher Höhe, +5,5 und +30 Blöcken; Geometrieprüfung ober-/unterhalb; echte KI muss im Finale innerhalb von 30 Sekunden mindestens fünf unterschiedliche waffenlose Attacken einsetzen.
+
+---
+# Blood-Boss v0.12 (10.11.2026): weniger Schaden, längerer Kampf, schwerer Ringkampf
+
+**Status:** v0.12.0 gebaut und in der Modrinth-Instanz installiert (ersetzt 0.11.0); Prüfsummen stimmen überein. JAR zusätzlich in dist/HHA_Blood-0.12.0.jar. Kompletter Server-Bosstest erfolgreich; Clienttest für Phase V, Blutspur, Hinterhalt, tatsächliche Schadensmessung (7,11 statt 9,48 HP), eingehenden Schaden (10 -> 5), erfolgreiche Greif-/Sprungwurf-Sequenz und neue Angriffsanimationen erfolgreich. Screenshots geprüft; Protokolle in blood/build/verification/v0.12.0/.
+
+- Minotaurus (Phasen III-V): ausgehender Trefferschaden x0,75 gegenüber v0.11, eingehender Schaden x0,5 statt x0,8. Wegen Vanillas 1024-HP-Grenze bleibt der Lebensbalken bei 1024; vor Rüstung entsprechen die Reserven jetzt 2048 statt 1280 HP (+60 %). Cerberus bleibt unverändert.
+- Waffenloses Finale: verzögerte Hammerfaust (Treffer 14/28/62, Erholung bis 88), lange schwere Stampfkette (18/40/76 statt durch Raserei immer schneller), Bodenwellen bis 36 Blöcke weit. Die Trefferzeitpunkte sind fest und client/server synchron.
+- Greif-Anlauf aus 6-13 Blöcken, 24 Ticks Vorbereitung, Richtung wird vor dem letzten Anlauf festgelegt; verfehltes Packen macht ihn 24 Ticks angreifbar. Bei Schilden bleibt Packen die Antwort.
+- Bodenaufreißen: beide Hände bei Tick 26 in den Boden, sichtbarer Staub/Vorwarnung, bei Tick 46 hochreißen und eine überspringbare Druckwelle bis 40 Blöcke. Längere Erholung nach Sprung/Bodeneinschlag. Stampfen/Bodenschläge erzeugen physische Druckwellen statt Feuerwellen oder zufälligem Felsregen.
+- Blutspur, Hinterhalte, waffenloser Zustand und das große Labyrinth bleiben erhalten.
+
+---
+# Blood-Boss v0.11 (09.11.2026): waffenloses Finale, bleibende Blutspur, großer Irrgarten
+
+**Status:** v0.11.0 gebaut und in F:/Modrinth/profiles/1.21.11/mods installiert; 0.10.0 dort ersetzt. Server-Bosstest, voller Client-Kampf (inkl. Blutspur/Hinterhalt in Phase V, Sieg/Belohnungen, Totem/Tod/Reset) und gezielter Kameratest vom Arenarand erfolgreich. Screenshots visuell geprüft. Prüfprotokolle: blood/build/verification/v0.11.0/.
+
+- Phase V: Asterion wirft seine Axt in der Übergangsszene sichtbar zur Seite. Sie bleibt als ungefährliches Modell am Boden; auch nach Überspringen der Szene und im Finale kehrt sie nicht in seine Hand zurück.
+- Eigene waffenlose Kampfhaltung und Animationen: Links-/Rechtshaken mit abschließendem Hammerfaustschlag, Aufwärtshaken, doppelter Faustschlag auf den Boden, Packen/Suplex, Schulterrempler, Stampfen und Sprung mit Bodeneinschlag. Keine Axtangriffe, Axtwürfe oder Wirbel in Phase V. Faustkombos haben im Nahkampf Vorrang, feste Trefferzeitpunkte und Erholungsfenster. Eine kurze Schwarzblende setzt ihn vor dem Axtwurf in den freigeräumten Hort, damit auch Treffer am Arenarand oder im Sprung die Kamera nicht verdecken.
+- Blutspur bleibt nach dem Labyrinth in Phase V für alle über HHA Ability 2 erhalten (10 s Unsichtbarkeit, 19 s Abklingzeit, Hinterhalt x3 + Taumeln). Der Phasenwechsel setzt den Cooldown nicht zurück. Versteckte Spieler werden auch im Finale nicht als Sichtziel gewählt; Flächentreffer können weiterhin treffen.
+- Labyrinth: füllt jetzt fast den gesamten Kampfboden (~76 Blöcke Durchmesser), statt kleiner Innenmaze + 8 offener Randkammern. 229 verbundene Zellen; Raster 4, Korridore 3 breit (Minotaurus 1,9 breit), Mauern 7 hoch. Nur der zentrale 11x11-Hort bleibt offen. Geschlossene Außenkanten, lange verzweigte Wege, echte Sackgassen, nur 1,5 % zusätzliche Verbindungen. Bestehende Säulen/Altar und Türdurchgänge werden bei der Erzeugung berücksichtigt; abgeschnittene Taschen werden nicht benutzt. Spieler starten nach Wegentfernung weit hinten im Irrgarten.
+- Prüfungen: 16 feste Maze-Seeds auf Zellzahl, Sackgassen und Weglänge (je 229 Zellen, längste Wege mindestens 156 Blöcke; im Serverlauf 408 Blöcke); auf dem realen Kampfboden alle Korridore mit 3x3x4 Platz vom Hort erreichbar. Client-Test betätigt HHA Ability 2 auch in Phase V und prüft den anschließenden Hinterhalt. Server-Test meldet jeden bewaffneten Angriff in Phase V als Fehler.
+
+---
 # Heaven & Hell: Addons - Projektnotizen
 
 Addons für die Minecraft-Mod **H&H Armors (HHA)** (https://modrinth.com/mod/hha, Autor: Henny, MIT, Quellcode https://github.com/Henny263462/HHA - das Repo ist archiviert/read-only).
@@ -50,7 +82,15 @@ Rate-Limit abbrach - Rest selbst fertiggestellt).
   Klaue, Schwanzfeger; < 35 % Phase 3: Herzschlag-Schockringe (springen!), Großer Nihil. 700 HP. Belohnung erst nach dem
   Drachen (+ Trophäe `heart_of_cruorax` beim 1. Sieg). Alle fliehen 20 s -> kompletter Reset (Fürst auf den Thron).
   Selbsttest `bosstest` spielt den ganzen Kampf durch.
-- **v0.9.0** (installiert, 0.8.0 entfernt; auf GitHub `vibec-studios/hha-blood` main) = Mats 07.11. abends: "Schaden balancen (zu stark), Cerberus sieht kacke aus, Minotaurus dasht zu viel, Kampfprinzip langweilig, Biom weird, kein klarer Weg zur Arena":
+- **v0.10.0** (installiert, 0.9.0 entfernt) = Mats 08.11.: Animationen besser, Weg zur Arena laenger, Stufe 4 echtes Labyrinth mit Schleichen, Stufe 5 Berserker (Details `docs/SPEC_BOSS.md` oben):
+  - **Labyrinth** (`boss/PitLabyrinth.kt`): Gitter-Labyrinth (Zellen 5, Mauern 5 hoch, Hort in der Mitte, 8 Kammern zwischen den Saeulen) waechst in Wellen; Spieler werden verteilt. Jeder kann mit HHAs **Ability 2 (H)** im Blut versinken (eigene HHA-Ability `labyrinth_trail`, Hell-Ability-2 per `HhaEvents.ABILITY_CAST` umgeleitet): 10 s unsichtbar, 19 s Abklingzeit. Minotaurus sieht Versteckte nicht, hoert Sprinten/Gehen, schnueffelt, sagt Sprueche (hunt/found/vanish/backstab/heard/scent). Nahkampf aus dem Blut = Hinterhalt x3 + Taumeln.
+  - **Berserker** (Stufe 5, `berserk`): rote Augen + Dampf, schneller/haerter, Stampf-Kette, Schulterrempler, Kriegssprung, Wutschrei, Erdspalter, Suplex-Packen; Szene 4 sprengt das Labyrinth.
+  - Fix: nach unterbrochenem Axtwurf hatte er die Axt nie zurueck (nur Hornstoesse) - `runScene` setzt `axeOut` zurueck.
+  - Animationen (Opus-Agent): Keyframes auf dem Server-Windup, Cross-Fades, echter Gang, Federn (Umhang/Schwanz/Ohren), Mund beim Sprechen, Cerberus mit Bodenhaftung + eigenstaendigen Koepfen, Kamera folgt weich. `/hhablood boss mpose|walk`, Gametest-Modi `minotaur`, `walk`.
+  - Weg (Opus-Agent): ~66 Bloecke Schlachtweg vom Turmfuss (Gang der Gefesselten, Halle der Hoerner, Knochenbruecke ueber dem Blutschlund, grosse Treppe, Schaedeltor), auch in bestehenden Welten per Umbau.
+  - Die beiden Agenten liefen in Kopien (`ws-anim`, `ws-path` im Scratchpad) und wurden zweimal vom Rate-Limit gestoppt; ihr fast fertiger Stand wurde von Hand gemergt und selbst getestet.
+  - Dev-Server-Port lokal auf 25611 (25599 war belegt). Server-Bosstest und Client-Gametest NIE parallel starten: `runServer` loescht den Gametest-Ordner (`deleteGameTestRunDir`).
+- **v0.9.0** (0.8.0 entfernt; auf GitHub `vibec-studios/hha-blood` main) = Mats 07.11. abends: "Schaden balancen (zu stark), Cerberus sieht kacke aus, Minotaurus dasht zu viel, Kampfprinzip langweilig, Biom weird, kein klarer Weg zur Arena":
   - Schaden: `PitBoss.BALANCE` 0.6 auf alle Boss-Treffer (Gametest: Cerberus braucht ~17 s fuer ein Totem bei voller Netherit P4).
   - **Cerberus = Koepfe brechen**: jeder Kopf hat eigene HP (`headHp`, Stufe 1 je 110, Stufe 2 je 125) + eigene Bossleiste (Reisser/Flammenschlund/Heuler). Treffer gehen an den anvisierten Kopf (`headFor`: Nahkampf-Blickstrahl 1.4, sonst Punktabstand 1.7), Koerpertreffer nur x0.3 (`BODY_FACTOR`, Hinweis beim ersten). Gebrochener Kopf (`BROKEN`-Bitmaske, getrackt) haengt schlaff, sein Angriff faellt weg (0 Blutbiss, 1 Feuer/Feuerkreis, 2 Heulen; Dreifach-Angriffe brauchen 2 Koepfe), kurzes Taumeln. Stufe 1 endet bei 2 gebrochenen Koepfen, Stufe 2 bei allen 3. Entity-Leben spiegelt nur die Summe. Hitbox 3.3x3.6 (Koepfe ragen vor). `/hhablood boss breakhead`, `/kill` und `skip` brechen Koepfe.
   - **Minotaurus**: Ansturm nur noch ab 14 Bloecken Abstand, Abklingzeit 18 s (Phase 3) / 15 s (Phase 5) / 12 s (Labyrinth, ab 9 Bloecken), max. 2 Anstuerme am Stueck (vorher 3), kein Ansturm direkt nach dem Heulen. **Verfehlter Spaltschlag = Axt steckt** (`STUCK`, 46 Ticks, x1.5 Schaden, Hinweis, Steinsplitter beim Herausreissen 14 Schaden in 2.6 Bloecken); Kombo nur nach Treffer; in der Raserei 50 %.

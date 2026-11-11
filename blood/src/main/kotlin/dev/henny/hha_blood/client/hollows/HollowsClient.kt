@@ -1,8 +1,10 @@
 package dev.henny.hha_blood.client.hollows
 
+import dev.henny.hha_blood.hollows.HeartVaultPiece
 import dev.henny.hha_blood.hollows.HollowsParticles
 import dev.henny.hha_blood.hollows.HollowsRegion
 import dev.henny.hha_blood.hollows.PitBlocks
+import dev.henny.hha_blood.hollows.PitApproach
 import dev.henny.hha_blood.hollows.PitHeartBlockEntity
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.particle.v1.FabricSpriteProvider
@@ -18,6 +20,7 @@ import net.minecraft.client.world.ClientWorld
 import net.minecraft.particle.SimpleParticleType
 import net.minecraft.sound.SoundCategory
 import net.minecraft.util.math.Vec3d
+import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.sin
 
@@ -65,6 +68,19 @@ object Heartbeat {
     private fun beat(client: MinecraftClient, world: ClientWorld, at: Vec3d) {
         val heart = PitHeartBlockEntity.HEARTS.filter { !it.isRemoved && it.world === world }
             .minByOrNull { it.pos.getSquaredDistance(at) }
+        if (heart != null) {
+            // on the way down (stair tower + processional hall) the heart is heard through the rock, louder with
+            // every step towards the pit; the arena centre lies right below the heart's anchor
+            val dx = at.x - (heart.pos.x + 0.5)
+            val dz = at.z - (heart.pos.z + 0.5)
+            val dy = at.y - (heart.pos.y - (HeartVaultPiece.H.toInt() - 1))
+            if (abs(dx) <= PitApproach.GATE_HALF + 3 && dz in 44.0..(PitApproach.MAX_DZ + 1.0) && dy in -6.0..90.0) {
+                val k = ((PitApproach.TOWER_DZ - dz) / (PitApproach.TOWER_DZ - 44.0)).coerceIn(0.0, 1.0)
+                val vol = (0.07 + 0.38 * k * k).toFloat()
+                client.soundManager.play(PositionedSoundInstance.ambient(HollowsParticles.HEARTBEAT, (0.92 + 0.08 * k).toFloat(), vol))
+                return
+            }
+        }
         if (heart != null && heart.pos.getSquaredDistance(at) < 110.0 * 110.0) {
             val p = heart.pos
             // volume > 1 only widens the range (16 blocks per unit): audible in the whole pit

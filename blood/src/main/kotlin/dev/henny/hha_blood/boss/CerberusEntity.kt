@@ -31,6 +31,8 @@ class CerberusEntity(type: EntityType<out CerberusEntity>, world: World) : PitBo
         val UNLEASHED: TrackedData<Boolean> = DataTracker.registerData(CerberusEntity::class.java, TrackedDataHandlerRegistry.BOOLEAN)
         /** Bit i set = head i (0 bleed, 1 flame, 2 howl) is broken: hangs limp, no glow, its attacks are gone. */
         val BROKEN: TrackedData<Int> = DataTracker.registerData(CerberusEntity::class.java, TrackedDataHandlerRegistry.INTEGER)
+        /** Which head does the current BITE (client animation only). */
+        val BITE_HEAD: TrackedData<Int> = DataTracker.registerData(CerberusEntity::class.java, TrackedDataHandlerRegistry.INTEGER)
 
         const val SLEEP = 0
         const val WAKE = 1
@@ -99,6 +101,7 @@ class CerberusEntity(type: EntityType<out CerberusEntity>, world: World) : PitBo
         super.initDataTracker(builder)
         builder.add(UNLEASHED, false)
         builder.add(BROKEN, 0)
+        builder.add(BITE_HEAD, 0)
     }
 
     var unleashed: Boolean
@@ -111,6 +114,9 @@ class CerberusEntity(type: EntityType<out CerberusEntity>, world: World) : PitBo
         set(v) = dataTracker.set(BROKEN, v and 7)
 
     fun isHeadBroken(i: Int): Boolean = (brokenMask shr i) and 1 == 1
+
+    /** The head of the current/last BITE (synced for the animation). */
+    val bitingHead: Int get() = dataTracker.get(BITE_HEAD)
 
     // ------------------------------------------------------------------------------------- heads (fight state)
 
@@ -293,7 +299,7 @@ class CerberusEntity(type: EntityType<out CerberusEntity>, world: World) : PitBo
         aim = target.entityPos
         act(choice)
         when (choice) {
-            BITE -> { cdBite = 18; gcd = w(12); biteHead = anyHead() }
+            BITE -> { cdBite = 18; gcd = w(12); biteHead = anyHead(); dataTracker.set(BITE_HEAD, biteHead) }
             SNAP3 -> { cdSnap = 80; gcd = w(16); snapHeads = aliveHeads() }
             BREATH -> { cdBreath = 130; gcd = w(18); sound(BossSounds.CERBERUS_GROWL, 2.5f, 0.9f) }
             HOWL -> { cdHowl = if (u) 200 else 240; gcd = w(10) }
